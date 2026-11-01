@@ -5,6 +5,7 @@ import com.dathis.rpg.core.module.AbstractModule;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Кастомные предметы и оружие. Админ создаёт их в окне /create-item:
@@ -14,6 +15,8 @@ public final class ItemModule extends AbstractModule {
 
     private ItemRegistry registry;
     private ItemFactory factory;
+    private ArmorListener armor;
+    private BukkitTask armorTask;
 
     public ItemModule() {
         super("items", "Кастомные предметы и оружие");
@@ -25,6 +28,9 @@ public final class ItemModule extends AbstractModule {
         registry.load();
         factory = new ItemFactory(registry);
         listen(new CombatListener(this));
+        armor = new ArmorListener(this);
+        listen(armor);
+        armorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, armor, 20L, 20L);
 
         PluginCommand command = plugin.getCommand("create-item");
         if (command != null) {
@@ -36,6 +42,14 @@ public final class ItemModule extends AbstractModule {
 
     @Override
     protected void onDisable() {
+        if (armorTask != null) {
+            armorTask.cancel();
+            armorTask = null;
+        }
+        if (armor != null) {
+            armor.removeAll();
+            armor = null;
+        }
         PluginCommand command = plugin.getCommand("create-item");
         if (command != null) {
             command.setExecutor(null);

@@ -11,7 +11,7 @@ import java.util.List;
 /** Шаблон кастомного предмета, созданный админом. Он же черновик в редакторе. */
 public final class CustomItem {
 
-    public enum Kind { ITEM, WEAPON }
+    public enum Kind { ITEM, WEAPON, ARMOR }
 
     String id;               // null, пока черновик не сохранён
     Kind kind;
@@ -26,6 +26,11 @@ public final class CustomItem {
     double critChance;       // %, 0..100
     double vampirism;        // % от нанесённого урона, который лечит атакующего
 
+    // Только для брони (действует, пока предмет надет)
+    double armor;            // очки брони, как у ванильной (у алмазного нагрудника 8)
+    double bonusHealth;      // +ХП к максимуму игрока
+    double regeneration;     // ХП в секунду
+
     CustomItem(Kind kind, Material material, String name) {
         this.kind = kind;
         this.material = material;
@@ -34,6 +39,10 @@ public final class CustomItem {
 
     boolean isWeapon() {
         return kind == Kind.WEAPON;
+    }
+
+    boolean isArmor() {
+        return kind == Kind.ARMOR;
     }
 
     TextColor color() {
@@ -61,6 +70,9 @@ public final class CustomItem {
         c.damageMax = damageMax;
         c.critChance = critChance;
         c.vampirism = vampirism;
+        c.armor = armor;
+        c.bonusHealth = bonusHealth;
+        c.regeneration = regeneration;
         return c;
     }
 
@@ -76,11 +88,21 @@ public final class CustomItem {
             s.set("crit-chance", critChance);
             s.set("vampirism", vampirism);
         }
+        if (isArmor()) {
+            s.set("armor", armor);
+            s.set("bonus-health", bonusHealth);
+            s.set("regeneration", regeneration);
+        }
     }
 
     static CustomItem load(String id, ConfigurationSection s) {
         Material material = Material.matchMaterial(s.getString("material", "STONE"));
-        Kind kind = "WEAPON".equalsIgnoreCase(s.getString("kind")) ? Kind.WEAPON : Kind.ITEM;
+        Kind kind;
+        try {
+            kind = Kind.valueOf(s.getString("kind", "ITEM").toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            kind = Kind.ITEM;
+        }
         CustomItem item = new CustomItem(kind, material == null ? Material.STONE : material, s.getString("name", id));
         item.id = id;
         item.nameColor = s.getString("name-color", "white");
@@ -89,6 +111,9 @@ public final class CustomItem {
         item.damageMax = s.getDouble("damage-max", 8);
         item.critChance = s.getDouble("crit-chance", 0);
         item.vampirism = s.getDouble("vampirism", 0);
+        item.armor = s.getDouble("armor", 0);
+        item.bonusHealth = s.getDouble("bonus-health", 0);
+        item.regeneration = s.getDouble("regeneration", 0);
         return item;
     }
 }

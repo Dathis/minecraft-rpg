@@ -29,7 +29,7 @@ final class MaterialMenu extends Menu {
         this.search = search;
         this.materials = Arrays.stream(Material.values())
                 .filter(m -> m.isItem() && !m.isAir() && !m.name().startsWith("LEGACY_"))
-                .filter(m -> !weaponsOnly || isWeapon(m))
+                .filter(m -> !weaponsOnly || (editor.draft().isArmor() ? isArmor(m) : isWeapon(m)))
                 .filter(m -> search == null || m.name().contains(search.toUpperCase(Locale.ROOT).replace(' ', '_')))
                 .toList();
     }
@@ -59,9 +59,10 @@ final class MaterialMenu extends Menu {
                         text -> new MaterialMenu(module, editor, weaponsOnly, 0, text).open(p),
                         () -> open(p)));
         set(49, Icons.of(Material.BARRIER, "<red>К редактору"), editor::open);
-        if (editor.draft().isWeapon()) {
-            set(51, Icons.of(weaponsOnly ? Material.CHEST : Material.IRON_SWORD,
-                            weaponsOnly ? "<yellow>Показать все предметы" : "<yellow>Только оружие"),
+        if (editor.draft().isWeapon() || editor.draft().isArmor()) {
+            String only = editor.draft().isArmor() ? "<yellow>Только броня" : "<yellow>Только оружие";
+            set(51, Icons.of(weaponsOnly ? Material.CHEST : (editor.draft().isArmor() ? Material.IRON_CHESTPLATE : Material.IRON_SWORD),
+                            weaponsOnly ? "<yellow>Показать все предметы" : only),
                     p -> new MaterialMenu(module, editor, !weaponsOnly, 0, search).open(p));
         }
         if (search != null) {
@@ -72,6 +73,14 @@ final class MaterialMenu extends Menu {
             set(53, Icons.of(Material.ARROW, "<yellow>Вперёд", "<gray>Страница " + (page + 2) + " из " + pages),
                     p -> new MaterialMenu(module, editor, weaponsOnly, page + 1, search).open(p));
         }
+    }
+
+    /** Всё, что надевается в слоты брони (шлемы, нагрудники, поножи, ботинки, тыква, головы). */
+    static boolean isArmor(Material m) {
+        return switch (m.getEquipmentSlot()) {
+            case HEAD, CHEST, LEGS, FEET -> true;
+            default -> false;
+        };
     }
 
     static boolean isWeapon(Material m) {

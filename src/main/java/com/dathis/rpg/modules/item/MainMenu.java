@@ -19,15 +19,19 @@ final class MainMenu extends Menu {
         for (int i = 0; i < size(); i++) {
             set(i, Icons.filler());
         }
-        set(11, Icons.of(Material.PAPER, "<white>Обычный предмет",
+        set(10, Icons.of(Material.PAPER, "<white>Обычный предмет",
                         "<gray>Ванильный предмет со своим",
                         "<gray>названием, цветом и описанием"),
                 p -> new EditorMenu(module, new CustomItem(CustomItem.Kind.ITEM, Material.PAPER, "Новый предмет")).open(p));
-        set(13, Icons.of(Material.IRON_SWORD, "<red>Оружие",
+        set(12, Icons.of(Material.IRON_CHESTPLATE, "<aqua>Броня",
+                        "<gray>Всё как у предмета, плюс:",
+                        "<gray>защита, +ХП игроку, регенерация"),
+                p -> new EditorMenu(module, new CustomItem(CustomItem.Kind.ARMOR, Material.IRON_CHESTPLATE, "Новая броня")).open(p));
+        set(14, Icons.of(Material.IRON_SWORD, "<red>Оружие",
                         "<gray>Всё как у предмета, плюс:",
                         "<gray>урон от и до, крит. удар, вампиризм"),
                 p -> new EditorMenu(module, new CustomItem(CustomItem.Kind.WEAPON, Material.IRON_SWORD, "Новое оружие")).open(p));
-        set(15, Icons.of(Material.CHEST, "<gold>Сохранённые предметы",
+        set(16, Icons.of(Material.CHEST, "<gold>Сохранённые предметы",
                         "<gray>Всего: <white>" + module.registry().all().size(),
                         "<gray>Получить или изменить"),
                 p -> new ListMenu(module, 0).open(p));
