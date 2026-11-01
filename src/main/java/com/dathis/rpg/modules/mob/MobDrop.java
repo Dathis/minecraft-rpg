@@ -24,20 +24,31 @@ final class MobDrop {
         return new MobDrop(item.clone(), chance);
     }
 
+    static String encode(ItemStack item) {
+        return Base64.getEncoder().encodeToString(item.serializeAsBytes());
+    }
+
+    static ItemStack decode(Object data) {
+        try {
+            return ItemStack.deserializeBytes(Base64.getDecoder().decode(String.valueOf(data)));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("item", Base64.getEncoder().encodeToString(item.serializeAsBytes()));
+        map.put("item", encode(item));
         map.put("chance", chance);
         return map;
     }
 
     static MobDrop deserialize(Map<?, ?> map) {
-        try {
-            ItemStack item = ItemStack.deserializeBytes(Base64.getDecoder().decode(String.valueOf(map.get("item"))));
-            Object chance = map.get("chance");
-            return new MobDrop(item, chance instanceof Number n ? n.doubleValue() : 100);
-        } catch (Exception e) {
+        ItemStack item = decode(map.get("item"));
+        if (item == null) {
             return null;
         }
+        Object chance = map.get("chance");
+        return new MobDrop(item, chance instanceof Number n ? n.doubleValue() : 100);
     }
 }

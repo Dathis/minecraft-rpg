@@ -17,6 +17,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -44,6 +45,9 @@ public final class MobModule extends AbstractModule {
         registry = new MobRegistry(plugin);
         registry.load();
         listen(new MobListener(this));
+        listen(new NaturalSpawnBlocker(
+                plugin.getConfig().getBoolean("spawning.block-natural-monsters", true),
+                plugin.getConfig().getBoolean("spawning.block-natural-animals", false)));
 
         PluginCommand command = plugin.getCommand("create-mob");
         if (command != null) {
@@ -76,7 +80,8 @@ public final class MobModule extends AbstractModule {
         if (type == null) {
             return null;
         }
-        return location.getWorld().spawn(location, type, entity -> apply(mob, entity));
+        // randomizeData=false: без случайной брони, оружия, детёнышей и жокеев — только то, что задал админ
+        return location.getWorld().spawn(location, type, false, entity -> apply(mob, entity));
     }
 
     private void apply(CustomMob mob, Entity entity) {
@@ -94,6 +99,15 @@ public final class MobModule extends AbstractModule {
                 living.setHealth(health);
             }
             living.setRemoveWhenFarAway(false);
+            EntityEquipment equipment = living.getEquipment();
+            if (equipment != null) {
+                equipment.clear();
+                mob.equipment.forEach((slot, item) -> {
+                    equipment.setItem(slot, item.clone());
+                    // Снаряжение не выпадает при смерти: что падает, задаётся в луте
+                    equipment.setDropChance(slot, 0f);
+                });
+            }
         }
     }
 
@@ -125,6 +139,7 @@ public final class MobModule extends AbstractModule {
         lines.add(line("Ранг: " + mob.tier.label, NamedTextColor.GRAY));
         lines.add(line("ХП: " + Numbers.format(mob.health), NamedTextColor.GREEN));
         lines.add(line("Урон: " + Numbers.format(mob.damageMin) + " - " + Numbers.format(mob.damageMax), NamedTextColor.RED));
+        lines.add(line("Снаряжение: " + mob.equipment.size() + " шт.", NamedTextColor.AQUA));
         lines.add(line("Лут: " + mob.drops.size() + (mob.vanillaDrops ? " + ванильный" : ""), NamedTextColor.GOLD));
         return lines;
     }

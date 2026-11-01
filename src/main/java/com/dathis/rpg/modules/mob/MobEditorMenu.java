@@ -83,6 +83,11 @@ final class MobEditorMenu extends Menu {
                         "<gray>Предметов: <white>" + draft.drops.size(),
                         "", "<green>Нажмите, чтобы настроить"),
                 p -> new DropsMenu(module, this).open(p));
+        set(31, Icons.of(Material.IRON_CHESTPLATE, "<aqua>Снаряжение",
+                        "<gray>Броня и оружие: <white>" + draft.equipment.size() + " шт.",
+                        "<gray>Моб появится только с ним",
+                        "", "<green>Нажмите, чтобы настроить"),
+                p -> new EquipmentMenu(module, this).open(p));
         set(25, Icons.of(draft.vanillaDrops ? Material.ROTTEN_FLESH : Material.BARRIER,
                         "<yellow>Ванильный лут: " + (draft.vanillaDrops ? "<green>включён" : "<red>выключен"),
                         "<gray>Падает ли обычный лут этого моба",

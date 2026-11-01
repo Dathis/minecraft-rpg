@@ -6,7 +6,11 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +43,8 @@ public final class CustomMob {
     double damageMax = 5;
     boolean vanillaDrops;    // оставлять ли обычный лут моба
     List<MobDrop> drops = new ArrayList<>();
+    /** Снаряжение: ровно то, с чем моб появится. Пустые слоты остаются пустыми. */
+    Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
 
     CustomMob(EntityType type, String name) {
         this.type = type;
@@ -67,6 +73,8 @@ public final class CustomMob {
         for (MobDrop drop : drops) {
             c.drops.add(drop.copy());
         }
+        c.equipment = new EnumMap<>(EquipmentSlot.class);
+        equipment.forEach((slot, item) -> c.equipment.put(slot, item.clone()));
         return c;
     }
 
@@ -83,6 +91,8 @@ public final class CustomMob {
             list.add(drop.serialize());
         }
         s.set("drops", list);
+        s.set("equipment", null);
+        equipment.forEach((slot, item) -> s.set("equipment." + slot.name(), MobDrop.encode(item)));
     }
 
     static CustomMob load(String id, ConfigurationSection s) {
@@ -107,6 +117,19 @@ public final class CustomMob {
             MobDrop drop = MobDrop.deserialize(raw);
             if (drop != null) {
                 mob.drops.add(drop);
+            }
+        }
+        ConfigurationSection eq = s.getConfigurationSection("equipment");
+        if (eq != null) {
+            for (String key : eq.getKeys(false)) {
+                try {
+                    ItemStack item = MobDrop.decode(eq.getString(key));
+                    if (item != null) {
+                        mob.equipment.put(EquipmentSlot.valueOf(key), item);
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // неизвестный слот — пропускаем
+                }
             }
         }
         return mob;
