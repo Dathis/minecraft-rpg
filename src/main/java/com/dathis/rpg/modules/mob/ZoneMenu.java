@@ -138,30 +138,11 @@ final class ZoneMenu extends Menu {
         }, () -> open(player));
     }
 
-    /** «90» → 90, «5m» → 300, «1h» → 3600, «2м» → 120. -1 если не понятно. */
     static int parseTime(String text) {
-        String t = text.trim().toLowerCase(java.util.Locale.ROOT).replace(" ", "");
-        int multiplier = 1;
-        if (t.endsWith("h") || t.endsWith("ч")) {
-            multiplier = 3600;
-            t = t.substring(0, t.length() - 1);
-        } else if (t.endsWith("m") || t.endsWith("м")) {
-            multiplier = 60;
-            t = t.substring(0, t.length() - 1);
-        } else if (t.endsWith("s") || t.endsWith("с")) {
-            t = t.substring(0, t.length() - 1);
-        }
-        OptionalDouble value = Numbers.parse(t);
-        return value.isPresent() ? (int) Math.round(value.getAsDouble() * multiplier) : -1;
+        return Numbers.parseTime(text);
     }
 
     static String time(int seconds) {
-        if (seconds % 3600 == 0) {
-            return (seconds / 3600) + " ч";
-        }
-        if (seconds >= 60 && seconds % 60 == 0) {
-            return (seconds / 60) + " мин";
-        }
-        return seconds + " сек";
+        return Numbers.formatTime(seconds);
     }
 }
