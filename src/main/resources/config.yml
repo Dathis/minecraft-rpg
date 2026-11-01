@@ -12,8 +12,21 @@ modules:
   quests: true       # квесты
   shops: true        # магазины-обменники у NPC
   mobs: true         # кастомные мобы
-  weapons: true      # кастомное оружие и перки
+  items: true        # кастомные предметы и оружие (/create-item)
+  hud: true          # цифры урона и ХП цели сверху экрана
 
 storage:
   # Пока только yaml. Позже можно добавить sqlite.
   type: yaml
+
+items:
+  # Во сколько раз крит. удар сильнее обычного
+  crit-multiplier: 1.5
+
+hud:
+  # Всплывающие цифры урона над целью
+  damage-numbers: true
+  # Название и ХП существа сверху экрана, когда на него смотришь
+  target-health: true
+  # Дальность, на которой видно ХП цели (в блоках)
+  target-range: 20
