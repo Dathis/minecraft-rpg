@@ -1,0 +1,23 @@
+name: MinecraftRPG
+version: '${version}'
+main: com.dathis.rpg.RpgPlugin
+api-version: '1.21'
+description: RPG-плагин для Paper с поддержкой Java и Bedrock (Geyser + Floodgate)
+authors: [Dathis]
+softdepend: [floodgate, Geyser-Spigot]
+
+commands:
+  rpg:
+    description: Главная команда RPG-плагина
+    usage: /rpg <help|modules|reload>
+    permission: rpg.command
+
+permissions:
+  rpg.command:
+    description: Доступ к /rpg
+    default: true
+  rpg.admin:
+    description: Администрирование RPG (зоны, NPC, мобы, оружие, магазины)
+    default: op
+    children:
+      rpg.command: true
