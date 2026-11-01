@@ -23,15 +23,22 @@ public final class ItemRegistry {
 
     private final RpgPlugin plugin;
     private final NamespacedKey idKey;
+    private final NamespacedKey baseKey;
     private final Map<String, CustomItem> items = new LinkedHashMap<>();
 
     ItemRegistry(RpgPlugin plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "item_id");
+        this.baseKey = new NamespacedKey(plugin, "armor_base");
     }
 
     NamespacedKey idKey() {
         return idKey;
+    }
+
+    /** Ключ «пустого» модификатора, которым у кастомной брони отключаются ванильные очки брони. */
+    NamespacedKey baseKey() {
+        return baseKey;
     }
 
     void load() {

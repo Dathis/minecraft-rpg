@@ -3,6 +3,8 @@ package com.dathis.rpg.modules.item;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -35,6 +37,14 @@ final class ItemFactory {
                 meta.setAttributeModifiers(item.material.getDefaultAttributeModifiers(EquipmentSlot.HAND));
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             }
+            if (item.isArmor()) {
+                // Ванильная защита предмета отключается (явный модификатор заменяет ванильные),
+                // а настоящие статы игроку даёт ArmorListener, пока броня надета.
+                EquipmentSlot slot = item.material.getEquipmentSlot();
+                meta.addAttributeModifier(Attribute.ARMOR,
+                        new AttributeModifier(registry.baseKey(), 0, AttributeModifier.Operation.ADD_NUMBER, slot.getGroup()));
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            }
         });
         return stack;
     }
@@ -54,6 +64,20 @@ final class ItemFactory {
             }
             if (item.vampirism > 0) {
                 lines.add(plain("Вампиризм: " + num(item.vampirism) + "%").color(NamedTextColor.DARK_RED));
+            }
+        }
+        if (item.isArmor()) {
+            if (!lines.isEmpty()) {
+                lines.add(Component.empty());
+            }
+            if (item.armor > 0) {
+                lines.add(plain("Броня: +" + num(item.armor)).color(NamedTextColor.AQUA));
+            }
+            if (item.bonusHealth > 0) {
+                lines.add(plain("Здоровье: +" + num(item.bonusHealth)).color(NamedTextColor.RED));
+            }
+            if (item.regeneration > 0) {
+                lines.add(plain("Регенерация: +" + num(item.regeneration) + " ХП/сек").color(NamedTextColor.GREEN));
             }
         }
         return lines;

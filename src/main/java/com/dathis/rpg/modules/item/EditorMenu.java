@@ -23,7 +23,8 @@ final class EditorMenu extends Menu {
     private boolean confirmDelete;
 
     EditorMenu(ItemModule module, CustomItem draft) {
-        super(5, Icons.text(draft.isWeapon() ? "<dark_gray>Редактор оружия" : "<dark_gray>Редактор предмета"));
+        super(5, Icons.text(draft.isWeapon() ? "<dark_gray>Редактор оружия"
+                : draft.isArmor() ? "<dark_gray>Редактор брони" : "<dark_gray>Редактор предмета"));
         this.module = module;
         this.draft = draft;
     }
@@ -46,7 +47,7 @@ final class EditorMenu extends Menu {
         set(19, Icons.of(draft.material, "<yellow>Ванильный предмет",
                         "<gray>Сейчас: <white>" + pretty(draft.material),
                         "", "<green>Нажмите, чтобы выбрать из списка"),
-                p -> new MaterialMenu(module, this, draft.isWeapon(), 0, null).open(p));
+                p -> new MaterialMenu(module, this, draft.isWeapon() || draft.isArmor(), 0, null).open(p));
         set(20, Icons.of(Material.HOPPER, "<yellow>Взять из руки",
                         "<gray>Основой станет предмет,",
                         "<gray>который вы держите в руке"),
@@ -92,6 +93,31 @@ final class EditorMenu extends Menu {
                             "", "<green>Нажмите и напишите процент, например <white>20"),
                     p -> ask(p, "<yellow>Введите вампиризм в процентах (0-100):",
                             text -> draft.vampirism = percent(p, text, draft.vampirism)));
+        }
+
+        // Свойства брони
+        if (draft.isArmor()) {
+            set(29, Icons.of(Material.SHIELD, "<aqua>Броня",
+                            "<gray>Сейчас: <white>+" + ItemFactory.num(draft.armor),
+                            "<gray>Как у ванильной: алмазный нагрудник = 8.",
+                            "<gray>Всего у игрока максимум 30 (предел Minecraft).",
+                            "", "<green>Нажмите и напишите число"),
+                    p -> ask(p, "<yellow>Сколько очков брони (0-30)?",
+                            text -> draft.armor = range(p, text, 0, 30, draft.armor)));
+            set(31, Icons.of(Material.GOLDEN_APPLE, "<red>Здоровье",
+                            "<gray>Сейчас: <white>+" + ItemFactory.num(draft.bonusHealth) + " ХП",
+                            "<gray>Добавляется к 20 ХП игрока,",
+                            "<gray>пока броня надета (1 сердце = 2 ХП)",
+                            "", "<green>Нажмите и напишите число"),
+                    p -> ask(p, "<yellow>Сколько ХП добавить (0-500)?",
+                            text -> draft.bonusHealth = range(p, text, 0, 500, draft.bonusHealth)));
+            set(33, Icons.of(Material.GLISTERING_MELON_SLICE, "<green>Регенерация",
+                            "<gray>Сейчас: <white>+" + ItemFactory.num(draft.regeneration) + " ХП/сек",
+                            "<gray>Лечит каждую секунду, пока броня надета.",
+                            "<gray>Не работает 5 секунд после получения урона.",
+                            "", "<green>Нажмите и напишите число, например <white>0.5"),
+                    p -> ask(p, "<yellow>Сколько ХП в секунду восстанавливать (0-50)?",
+                            text -> draft.regeneration = range(p, text, 0, 50, draft.regeneration)));
         }
 
         // Нижний ряд
@@ -143,6 +169,19 @@ final class EditorMenu extends Menu {
             // ниже
         }
         module.plugin().messages().send(player, "<red>Нужно число от 0 до 100.</red>");
+        return fallback;
+    }
+
+    private double range(Player player, String text, double min, double max, double fallback) {
+        try {
+            double value = Double.parseDouble(text.replace("%", "").replace(',', '.').trim());
+            if (value >= min && value <= max) {
+                return value;
+            }
+        } catch (NumberFormatException ignored) {
+            // ниже
+        }
+        module.plugin().messages().send(player, "<red>Нужно число от " + ItemFactory.num(min) + " до " + ItemFactory.num(max) + ".</red>");
         return fallback;
     }
 
