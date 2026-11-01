@@ -10,12 +10,13 @@ import org.bukkit.inventory.ItemStack;
 import java.util.OptionalDouble;
 
 /**
- * Лут моба. Добавить предмет: взять его в руку (подходят и предметы из /create-item) и нажать «Добавить».
- * Нажатие на предмет в списке меняет шанс, «Удалить» убирает его.
+ * Лут моба. Положите предмет из инвентаря в пустой слот (или shift-клик по нему) — он добавится,
+ * и плагин спросит шанс. Количество в стаке = сколько выпадет. Предмет у вас не забирается.
+ * Нажатие на предмет в списке меняет шанс, в режиме удаления — удаляет.
  */
 final class DropsMenu extends Menu {
 
-    private static final int MAX_DROPS = 36;
+    private static final int MAX_DROPS = 45;
 
     private final MobModule module;
     private final MobEditorMenu editor;
@@ -30,29 +31,43 @@ final class DropsMenu extends Menu {
     @Override
     protected void render() {
         var drops = editor.draft().drops;
-        for (int i = 0; i < MAX_DROPS && i < drops.size(); i++) {
-            MobDrop drop = drops.get(i);
-            ItemStack icon = Icons.withHint(drop.item, "",
-                    "<gold>Шанс: <white>" + Numbers.format(drop.chance) + "%",
-                    deleteMode ? "<red>Нажмите, чтобы удалить" : "<green>Нажмите, чтобы изменить шанс");
-            set(i, icon, p -> {
-                if (deleteMode) {
-                    drops.remove(drop);
-                    redraw();
-                } else {
-                    askChance(p, drop);
-                }
-            });
+        for (int i = 0; i < MAX_DROPS; i++) {
+            if (i < drops.size()) {
+                MobDrop drop = drops.get(i);
+                ItemStack icon = Icons.withHint(drop.item, "",
+                        "<gold>Шанс: <white>" + Numbers.format(drop.chance) + "%",
+                        deleteMode ? "<red>Нажмите, чтобы удалить" : "<green>Нажмите, чтобы изменить шанс",
+                        deleteMode ? "" : "<gray>Положите другой предмет, чтобы заменить");
+                setInput(i, icon, (p, cursor) -> {
+                    if (deleteMode) {
+                        drops.remove(drop);
+                        redraw();
+                    } else if (cursor != null) {
+                        drop.item = cursor;
+                        askChance(p, drop);
+                    } else {
+                        askChance(p, drop);
+                    }
+                });
+            } else {
+                setInput(i, null, (p, cursor) -> {
+                    if (cursor != null) {
+                        add(p, cursor);
+                    }
+                });
+            }
         }
         for (int i = MAX_DROPS; i < size(); i++) {
             set(i, Icons.filler());
         }
         set(45, Icons.of(Material.ARROW, "<gray>К редактору"), editor::open);
-        set(48, Icons.of(Material.HOPPER, "<green>Добавить предмет из руки",
-                "<gray>Возьмите предмет в основную руку.",
+        set(49, Icons.of(Material.BOOK, "<yellow>Как добавить лут",
+                "<gray>Возьмите предмет из своего инвентаря",
+                "<gray>и положите в пустой слот выше,",
+                "<gray>или сделайте shift-клик по нему.",
                 "<gray>Количество в стаке = сколько выпадет.",
-                "<gray>Подходят предметы из /create-item"), this::addFromHand);
-        set(50, Icons.of(deleteMode ? Material.LIME_DYE : Material.LAVA_BUCKET,
+                "<gray>Подходят предметы из /create-item."));
+        set(53, Icons.of(deleteMode ? Material.LIME_DYE : Material.LAVA_BUCKET,
                 deleteMode ? "<green>Готово" : "<red>Удалить предметы",
                 deleteMode ? "<gray>Выйти из режима удаления" : "<gray>Включить режим удаления"), p -> {
             deleteMode = !deleteMode;
@@ -60,17 +75,17 @@ final class DropsMenu extends Menu {
         });
     }
 
-    private void addFromHand(Player player) {
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand.isEmpty()) {
-            module.plugin().messages().send(player, "<red>Возьмите предмет в основную руку.</red>");
-            return;
-        }
+    @Override
+    protected void quickAdd(Player player, ItemStack item) {
+        add(player, item);
+    }
+
+    private void add(Player player, ItemStack item) {
         if (editor.draft().drops.size() >= MAX_DROPS) {
             module.plugin().messages().send(player, "<red>Максимум " + MAX_DROPS + " предметов в луте.</red>");
             return;
         }
-        MobDrop drop = new MobDrop(hand.clone(), 100);
+        MobDrop drop = new MobDrop(item.clone(), 100);
         editor.draft().drops.add(drop);
         askChance(player, drop);
     }

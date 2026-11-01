@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,9 @@ public final class MobModule extends AbstractModule {
     static final double MAX_HEALTH_LIMIT = 1024;
 
     private MobRegistry registry;
+    private ZoneManager zones;
+    private SelectionWand wand;
+    private final List<BukkitTask> tasks = new ArrayList<>();
 
     public MobModule() {
         super("mobs", "Кастомные мобы");
@@ -45,6 +49,14 @@ public final class MobModule extends AbstractModule {
         registry = new MobRegistry(plugin);
         registry.load();
         listen(new MobListener(this));
+
+        zones = new ZoneManager(this);
+        zones.load();
+        listen(zones);
+        wand = new SelectionWand(plugin);
+        listen(wand);
+        tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, zones, 40L, 20L));
+        tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, wand, 10L, 10L));
         listen(new NaturalSpawnBlocker(
                 plugin.getConfig().getBoolean("spawning.block-natural-monsters", true),
                 plugin.getConfig().getBoolean("spawning.block-natural-animals", false)));
@@ -59,6 +71,8 @@ public final class MobModule extends AbstractModule {
 
     @Override
     protected void onDisable() {
+        tasks.forEach(BukkitTask::cancel);
+        tasks.clear();
         PluginCommand command = plugin.getCommand("create-mob");
         if (command != null) {
             command.setExecutor(null);
@@ -72,6 +86,14 @@ public final class MobModule extends AbstractModule {
 
     MobRegistry registry() {
         return registry;
+    }
+
+    ZoneManager zones() {
+        return zones;
+    }
+
+    SelectionWand wand() {
+        return wand;
     }
 
     /** Спавнит моба по шаблону. */

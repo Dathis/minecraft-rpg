@@ -88,6 +88,17 @@ final class MobEditorMenu extends Menu {
                         "<gray>Моб появится только с ним",
                         "", "<green>Нажмите, чтобы настроить"),
                 p -> new EquipmentMenu(module, this).open(p));
+        if (draft.id != null) {
+            set(33, Icons.of(Material.GRASS_BLOCK, "<green>Зоны спавна",
+                            "<gray>Зон: <white>" + module.zones().forMob(draft.id).size(),
+                            "<gray>Области, где этот моб появляется сам",
+                            "<gray>и возвращается после смерти",
+                            "", "<green>Нажмите, чтобы настроить"),
+                    p -> new ZonesMenu(module, this).open(p));
+        } else {
+            set(33, Icons.of(Material.GRAY_DYE, "<gray>Зоны спавна",
+                    "<gray>Сначала сохраните моба"));
+        }
         set(25, Icons.of(draft.vanillaDrops ? Material.ROTTEN_FLESH : Material.BARRIER,
                         "<yellow>Ванильный лут: " + (draft.vanillaDrops ? "<green>включён" : "<red>выключен"),
                         "<gray>Падает ли обычный лут этого моба",
@@ -131,6 +142,7 @@ final class MobEditorMenu extends Menu {
             redraw();
             return;
         }
+        module.zones().deleteForMob(draft.id);
         module.registry().delete(draft.id);
         module.plugin().messages().send(player, "<yellow>Моб удалён. Уже призванные станут обычными.</yellow>");
         new MobListMenu(module, 0).open(player);

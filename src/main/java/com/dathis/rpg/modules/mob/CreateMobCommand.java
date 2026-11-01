@@ -15,6 +15,7 @@ import java.util.Locale;
  * /create-mob list                    — список мобов
  * /create-mob egg &lt;id&gt; [кол-во] [игрок] — выдать яйца призыва
  * /create-mob spawn &lt;id&gt;              — призвать моба там, куда смотришь
+ * /create-mob wand                    — палочка выделения для зон спавна
  */
 final class CreateMobCommand implements TabExecutor {
 
@@ -81,7 +82,13 @@ final class CreateMobCommand implements TabExecutor {
                 var location = block != null ? block.getLocation().add(0.5, 1, 0.5) : player.getLocation();
                 module.spawn(mob, location);
             }
-            default -> messages.send(sender, "<red>Использование: /" + label + " [list | egg <id> | spawn <id>]</red>");
+            case "wand" -> {
+                if (sender instanceof Player player) {
+                    player.getInventory().addItem(module.wand().create());
+                    messages.send(sender, "<green>Палочка выделения выдана.");
+                }
+            }
+            default -> messages.send(sender, "<red>Использование: /" + label + " [list | egg <id> | spawn <id> | wand]</red>");
         }
         return true;
     }
@@ -90,7 +97,7 @@ final class CreateMobCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return filter(List.of("list", "egg", "spawn"), args[0]);
+            return filter(List.of("list", "egg", "spawn", "wand"), args[0]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("egg") || args[0].equalsIgnoreCase("spawn"))) {
             return filter(module.registry().all().stream().map(m -> m.id).toList(), args[1]);

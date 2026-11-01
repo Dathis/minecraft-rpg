@@ -18,7 +18,7 @@ commands:
     permission: rpg.admin
   create-mob:
     description: Окно создания кастомных мобов
-    usage: /create-mob [list | egg <id> [кол-во] [игрок] | spawn <id>]
+    usage: /create-mob [list | egg <id> [кол-во] [игрок] | spawn <id> | wand]
     aliases: [createmob, cm]
     permission: rpg.admin
 
