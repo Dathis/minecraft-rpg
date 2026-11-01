@@ -1,5 +1,6 @@
 package com.dathis.rpg.modules.mob;
 
+import com.dathis.rpg.core.gui.EquipmentMenu;
 import com.dathis.rpg.core.gui.Icons;
 import com.dathis.rpg.core.gui.Menu;
 import com.dathis.rpg.core.input.Numbers;
@@ -87,7 +88,11 @@ final class MobEditorMenu extends Menu {
                         "<gray>Броня и оружие: <white>" + draft.equipment.size() + " шт.",
                         "<gray>Моб появится только с ним",
                         "", "<green>Нажмите, чтобы настроить"),
-                p -> new EquipmentMenu(module, this).open(p));
+                p -> new EquipmentMenu("Снаряжение моба", draft.equipment, this,
+                        "<gray>Положите предмет в слот или сделайте",
+                        "<gray>shift-клик по нему в своём инвентаре.",
+                        "<gray>Моб появится только с этим снаряжением.",
+                        "<gray>При смерти оно не выпадает (для этого есть лут).").open(p));
         if (draft.id != null) {
             set(33, Icons.of(Material.GRASS_BLOCK, "<green>Зоны спавна",
                             "<gray>Зон: <white>" + module.zones().forMob(draft.id).size(),

@@ -49,6 +49,32 @@ public final class Icons {
         return stack;
     }
 
+    /**
+     * Разбивает длинный текст на строки для описания предмета (подсказки длиннее ~40 символов неудобно читать,
+     * особенно на телефоне). Каждой строке добавляется префикс, например цвет {@code "<gray>"}.
+     */
+    public static List<String> wrap(String text, int width, String prefix) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : text.trim().split("\\s+")) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (line.length() > 0 && line.length() + 1 + word.length() > width) {
+                lines.add(prefix + line);
+                line.setLength(0);
+            }
+            if (line.length() > 0) {
+                line.append(' ');
+            }
+            line.append(word);
+        }
+        if (line.length() > 0) {
+            lines.add(prefix + line);
+        }
+        return lines;
+    }
+
     public static ItemStack filler() {
         return of(Material.GRAY_STAINED_GLASS_PANE, " ");
     }

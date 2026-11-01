@@ -84,7 +84,7 @@ final class CreateMobCommand implements TabExecutor {
             }
             case "wand" -> {
                 if (sender instanceof Player player) {
-                    player.getInventory().addItem(module.wand().create());
+                    player.getInventory().addItem(module.plugin().selectionWand().create());
                     messages.send(sender, "<green>Палочка выделения выдана.");
                 }
             }

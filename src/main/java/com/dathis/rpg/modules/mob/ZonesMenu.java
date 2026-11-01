@@ -1,5 +1,7 @@
 package com.dathis.rpg.modules.mob;
 
+import com.dathis.rpg.core.selection.SelectionWand;
+
 import com.dathis.rpg.core.gui.Icons;
 import com.dathis.rpg.core.gui.Menu;
 import org.bukkit.Material;
@@ -44,7 +46,7 @@ final class ZonesMenu extends Menu {
                         "<gray>Удар по блоку — первый угол",
                         "<gray>ПКМ по блоку — второй угол"),
                 p -> {
-                    p.getInventory().addItem(module.wand().create());
+                    p.getInventory().addItem(module.plugin().selectionWand().create());
                     module.plugin().messages().send(p, "<green>Палочка выдана. Выделите область и вернитесь сюда.");
                     p.closeInventory();
                 });
@@ -61,7 +63,7 @@ final class ZonesMenu extends Menu {
     }
 
     private void create(Player player) {
-        SelectionWand.Selection selection = module.wand().selection(player);
+        SelectionWand.Selection selection = module.plugin().selectionWand().selection(player);
         if (selection == null || !selection.complete()) {
             module.plugin().messages().send(player,
                     "<red>Сначала выделите область палочкой: удар по блоку и ПКМ по другому блоку.</red>");

@@ -21,6 +21,21 @@ commands:
     usage: /create-mob [list | egg <id> [кол-во] [игрок] | spawn <id> | wand]
     aliases: [createmob, cm]
     permission: rpg.admin
+  create-npc:
+    description: Окно создания NPC (торговцы, квестодатели)
+    usage: /create-npc [list | place <id> | remove]
+    aliases: [createnpc, cnpc]
+    permission: rpg.admin
+  create-quest:
+    description: Окно создания квестов
+    usage: /create-quest [list | wand | reset <игрок> [id]]
+    aliases: [createquest, cq]
+    permission: rpg.admin
+  quests:
+    description: Журнал квестов игрока
+    usage: /quests
+    aliases: [q, journal]
+    permission: rpg.command
 
 permissions:
   rpg.command:

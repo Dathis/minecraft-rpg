@@ -6,6 +6,7 @@ import com.dathis.rpg.core.gui.MenuListener;
 import com.dathis.rpg.core.input.ChatInput;
 import com.dathis.rpg.core.module.ModuleManager;
 import com.dathis.rpg.core.platform.PlatformService;
+import com.dathis.rpg.core.selection.SelectionWand;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
 import com.dathis.rpg.modules.hud.HudModule;
@@ -14,7 +15,6 @@ import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
 import com.dathis.rpg.modules.quest.QuestModule;
 import com.dathis.rpg.modules.region.RegionModule;
-import com.dathis.rpg.modules.shop.ShopModule;
 import com.dathis.rpg.modules.tree.TreeReplantModule;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,6 +31,7 @@ public final class RpgPlugin extends JavaPlugin {
     private YamlStore store;
     private ModuleManager modules;
     private ChatInput chatInput;
+    private SelectionWand selectionWand;
 
     @Override
     public void onEnable() {
@@ -43,14 +44,16 @@ public final class RpgPlugin extends JavaPlugin {
         chatInput = new ChatInput(this);
         getServer().getPluginManager().registerEvents(chatInput, this);
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
+        selectionWand = new SelectionWand(this);
+        getServer().getPluginManager().registerEvents(selectionWand, this);
+        getServer().getScheduler().runTaskTimer(this, selectionWand, 10L, 10L);
 
-        // Порядок важен: NPC нужны диалогам, квестам и магазинам.
+        // Порядок важен: NPC нужны диалогам и квестам (торговля — часть NPC).
         modules.register(new RegionModule());
         modules.register(new TreeReplantModule());
         modules.register(new NpcModule());
         modules.register(new DialogModule());
         modules.register(new QuestModule());
-        modules.register(new ShopModule());
         modules.register(new MobModule());
         modules.register(new ItemModule());
         modules.register(new HudModule());
@@ -105,6 +108,11 @@ public final class RpgPlugin extends JavaPlugin {
 
     public ChatInput chatInput() {
         return chatInput;
+    }
+
+    /** Палочка выделения областей (зоны спавна, области квестов). */
+    public SelectionWand selectionWand() {
+        return selectionWand;
     }
 
     public ModuleManager modules() {

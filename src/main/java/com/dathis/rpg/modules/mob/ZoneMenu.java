@@ -1,5 +1,7 @@
 package com.dathis.rpg.modules.mob;
 
+import com.dathis.rpg.core.selection.SelectionWand;
+
 import com.dathis.rpg.core.gui.Icons;
 import com.dathis.rpg.core.gui.Menu;
 import com.dathis.rpg.core.input.Numbers;
@@ -75,7 +77,7 @@ final class ZoneMenu extends Menu {
         set(14, Icons.of(Material.BLAZE_ROD, "<yellow>Переместить на выделение",
                 "<gray>Зона займёт текущую область,",
                 "<gray>выделенную палочкой"), p -> {
-            SelectionWand.Selection selection = module.wand().selection(p);
+            SelectionWand.Selection selection = module.plugin().selectionWand().selection(p);
             if (selection == null || !selection.complete()) {
                 module.plugin().messages().send(p, "<red>Сначала выделите новую область палочкой.</red>");
                 return;
