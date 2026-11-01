@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Enemy;
 import org.bukkit.entity.EntityType;
 
 import org.bukkit.inventory.EquipmentSlot;
@@ -42,6 +43,8 @@ public final class CustomMob {
     double damageMin = 3;
     double damageMax = 5;
     boolean vanillaDrops;    // оставлять ли обычный лут моба
+    /** Враждебный — сам нападает на игрока, которого видит. Иначе только в ответ на удар. */
+    boolean hostile;
     List<MobDrop> drops = new ArrayList<>();
     /** Снаряжение: ровно то, с чем моб появится. Пустые слоты остаются пустыми. */
     Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
@@ -49,6 +52,13 @@ public final class CustomMob {
     CustomMob(EntityType type, String name) {
         this.type = type;
         this.name = name;
+        this.hostile = defaultHostile(type);
+    }
+
+    /** По умолчанию враждебны монстры (зомби, скелеты и т.д.), остальные — нет. */
+    static boolean defaultHostile(EntityType type) {
+        Class<?> clazz = type.getEntityClass();
+        return clazz != null && Enemy.class.isAssignableFrom(clazz);
     }
 
     /** Название с цветом ранга: обычный — белое, элитный — красное, босс — красное жирное. */
@@ -69,6 +79,7 @@ public final class CustomMob {
         c.damageMin = damageMin;
         c.damageMax = damageMax;
         c.vanillaDrops = vanillaDrops;
+        c.hostile = hostile;
         c.drops = new ArrayList<>();
         for (MobDrop drop : drops) {
             c.drops.add(drop.copy());
@@ -86,6 +97,7 @@ public final class CustomMob {
         s.set("damage-min", damageMin);
         s.set("damage-max", damageMax);
         s.set("vanilla-drops", vanillaDrops);
+        s.set("hostile", hostile);
         List<Map<String, Object>> list = new ArrayList<>();
         for (MobDrop drop : drops) {
             list.add(drop.serialize());
@@ -113,6 +125,7 @@ public final class CustomMob {
         mob.damageMin = s.getDouble("damage-min", 3);
         mob.damageMax = s.getDouble("damage-max", 5);
         mob.vanillaDrops = s.getBoolean("vanilla-drops", false);
+        mob.hostile = s.getBoolean("hostile", defaultHostile(type));
         for (Map<?, ?> raw : s.getMapList("drops")) {
             MobDrop drop = MobDrop.deserialize(raw);
             if (drop != null) {
