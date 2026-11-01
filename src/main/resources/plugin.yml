@@ -16,6 +16,11 @@ commands:
     usage: /create-item [list | give <id> [игрок]]
     aliases: [createitem, ci]
     permission: rpg.admin
+  create-mob:
+    description: Окно создания кастомных мобов
+    usage: /create-mob [list | egg <id> [кол-во] [игрок] | spawn <id>]
+    aliases: [createmob, cm]
+    permission: rpg.admin
 
 permissions:
   rpg.command:
