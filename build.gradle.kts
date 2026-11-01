@@ -1,7 +1,7 @@
 plugins {
     java
     id("com.gradleup.shadow") version "8.3.6"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 val minecraftVersion = "1.21.8"
