@@ -1,5 +1,6 @@
 package com.dathis.rpg.modules.item;
 
+import com.dathis.rpg.modules.hud.HudModule;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
@@ -11,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -52,6 +54,11 @@ final class CombatListener implements Listener {
         if (weapon.critChance > 0 && random.nextDouble(100) < weapon.critChance) {
             damage *= module.critMultiplier();
             showCrit(attacker, event.getEntity());
+            // HUD покажет эту цифру урона золотым
+            event.getEntity().setMetadata(HudModule.CRIT_METADATA, new FixedMetadataValue(module.plugin(), true));
+            Entity target = event.getEntity();
+            module.plugin().getServer().getScheduler().runTask(module.plugin(),
+                    () -> target.removeMetadata(HudModule.CRIT_METADATA, module.plugin()));
         }
 
         event.setDamage(damage);

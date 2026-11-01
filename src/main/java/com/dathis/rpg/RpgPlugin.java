@@ -8,6 +8,7 @@ import com.dathis.rpg.core.module.ModuleManager;
 import com.dathis.rpg.core.platform.PlatformService;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
+import com.dathis.rpg.modules.hud.HudModule;
 import com.dathis.rpg.modules.item.ItemModule;
 import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
@@ -52,6 +53,7 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new ShopModule());
         modules.register(new MobModule());
         modules.register(new ItemModule());
+        modules.register(new HudModule());
         modules.enableAll();
 
         PluginCommand rpg = getCommand("rpg");
