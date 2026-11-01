@@ -78,6 +78,11 @@ RpgPlugin (точка входа)
   детёнышей и жокеев. Ставит PDC `mob_id`, название, ХП, снаряжение (шанс выпадения 0), `removeWhenFarAway=false`.
 - `MobListener`: урон моба и его снарядов, лут при смерти, использование яйца призыва (своё яйцо не работает
   по спавнеру, мобу и из раздатчика).
+- `MobBrain` (поведение): при `EntityAddToWorldEvent` (спавн, загрузка чанка) снимает у моба ванильные задачи
+  Paper MobGoals типа TARGET и «бродить» (stroll/wander/...), атака и оглядывание остаются. Место спавна в PDC
+  `mob_home`. Каждые 10 тиков: враждебный (`CustomMob.hostile`) ищет видимого игрока в `mobs.aggro-range`, дальше
+  `mobs.leash-radius` от дома — бежит домой через Pathfinder (без реакций, 15 с — телепорт). Цель ставит только он:
+  `EntityTargetEvent` от ванили отменяется, удар игрока назначает цель.
 - `NaturalSpawnBlocker`: отменяет `CreatureSpawnEvent` с причинами NATURAL, JOCKEY, PATROL, REINFORCEMENTS, TRAP
   для `Enemy` (и для `Animals`, если включено). Конфиг `spawning.*`.
 - Зоны спавна: `SpawnZone` (`data/zones.yml`, id `zone1`), `ZoneManager` раз в секунду для каждой зоны, рядом с

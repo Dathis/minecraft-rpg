@@ -84,6 +84,17 @@ final class MobEditorMenu extends Menu {
                         "<gray>Предметов: <white>" + draft.drops.size(),
                         "", "<green>Нажмите, чтобы настроить"),
                 p -> new DropsMenu(module, this).open(p));
+        set(29, Icons.of(draft.hostile ? Material.REDSTONE : Material.WHITE_WOOL,
+                        "<yellow>Враждебный: " + (draft.hostile ? "<red>да" : "<green>нет"),
+                        "<red>Да</red> <gray>— сам нападает на игрока,",
+                        "<gray>которого увидит рядом",
+                        "<green>Нет</green> <gray>— нападает только в ответ,",
+                        "<gray>когда игрок его ударит",
+                        "", "<green>Нажмите, чтобы переключить"),
+                p -> {
+                    draft.hostile = !draft.hostile;
+                    redraw();
+                });
         set(31, Icons.of(Material.IRON_CHESTPLATE, "<aqua>Снаряжение",
                         "<gray>Броня и оружие: <white>" + draft.equipment.size() + " шт.",
                         "<gray>Моб появится только с ним",

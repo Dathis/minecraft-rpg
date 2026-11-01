@@ -37,6 +37,7 @@ public final class MobModule extends AbstractModule {
 
     private MobRegistry registry;
     private ZoneManager zones;
+    private MobBrain brain;
     private final List<BukkitTask> tasks = new ArrayList<>();
 
     public MobModule() {
@@ -48,6 +49,10 @@ public final class MobModule extends AbstractModule {
         registry = new MobRegistry(plugin);
         registry.load();
         listen(new MobListener(this));
+        brain = new MobBrain(this);
+        listen(brain);
+        brain.start();
+        tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, brain, 20L, 10L));
 
         zones = new ZoneManager(this);
         zones.load();
@@ -69,6 +74,9 @@ public final class MobModule extends AbstractModule {
     protected void onDisable() {
         tasks.forEach(BukkitTask::cancel);
         tasks.clear();
+        if (brain != null) {
+            brain.stop();
+        }
         PluginCommand command = plugin.getCommand("create-mob");
         if (command != null) {
             command.setExecutor(null);
@@ -177,6 +185,7 @@ public final class MobModule extends AbstractModule {
         lines.add(line("Ранг: " + mob.tier.label, NamedTextColor.GRAY));
         lines.add(line("ХП: " + Numbers.format(mob.health), NamedTextColor.GREEN));
         lines.add(line("Урон: " + Numbers.format(mob.damageMin) + " - " + Numbers.format(mob.damageMax), NamedTextColor.RED));
+        lines.add(line(mob.hostile ? "Враждебный: нападает сам" : "Нападает только в ответ", NamedTextColor.YELLOW));
         lines.add(line("Снаряжение: " + mob.equipment.size() + " шт.", NamedTextColor.AQUA));
         lines.add(line("Лут: " + mob.drops.size() + (mob.vanillaDrops ? " + ванильный" : ""), NamedTextColor.GOLD));
         return lines;

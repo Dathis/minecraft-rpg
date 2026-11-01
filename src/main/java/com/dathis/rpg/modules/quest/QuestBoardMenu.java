@@ -57,8 +57,22 @@ final class QuestBoardMenu extends Menu {
         }
         for (int i = 0; i < quests.size() && i < bottom; i++) {
             Quest quest = quests.get(i);
-            set(i, Icons.withHint(module.book(viewer, quest), "", "<green>Нажмите, чтобы открыть"),
-                    p -> new QuestViewMenu(module, quest, this, npc != null).open(p));
+            QuestModule.Status status = module.status(viewer, quest);
+            if (npc != null && status == QuestModule.Status.AVAILABLE) {
+                // У квестодателя: прочитал описание на книге, нажал — квест взят, без лишних окон
+                set(i, Icons.withHint(module.book(viewer, quest), "", "<green>Нажмите, чтобы взять квест"), p -> {
+                    module.accept(p, quest);
+                    redraw();
+                });
+            } else if (npc != null && status == QuestModule.Status.READY) {
+                set(i, Icons.withHint(module.book(viewer, quest), "", "<green><bold>Нажмите, чтобы сдать квест"), p -> {
+                    module.turnIn(p, quest);
+                    redraw();
+                });
+            } else {
+                set(i, Icons.withHint(module.book(viewer, quest), "", "<gray>Нажмите, чтобы открыть подробнее"),
+                        p -> new QuestViewMenu(module, quest, this, npc != null).open(p));
+            }
         }
         for (int i = bottom; i < size(); i++) {
             set(i, Icons.filler());
