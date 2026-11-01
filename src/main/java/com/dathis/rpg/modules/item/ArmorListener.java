@@ -24,7 +24,7 @@ import java.util.UUID;
  * Так изменения шаблона в /create-item сразу действуют на уже выданную броню.
  *
  * Сердца: при большом ХП Minecraft рисует много рядов сердец, поэтому показ сжимается до
- * items.health-scale ХП (по умолчанию 40 = 2 ряда). Настоящее ХП видно в полоске сверху (HUD).
+ * items.health-scale ХП (по умолчанию 40 = 2 ряда).
  */
 final class ArmorListener implements Listener, Runnable {
 
