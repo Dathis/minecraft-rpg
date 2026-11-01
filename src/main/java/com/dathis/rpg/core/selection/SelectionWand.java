@@ -55,7 +55,7 @@ public final class SelectionWand implements Listener, Runnable {
             meta.lore(java.util.List.of(
                     com.dathis.rpg.core.gui.Icons.text("<gray>Удар по блоку — первый угол"),
                     com.dathis.rpg.core.gui.Icons.text("<gray>ПКМ по блоку — второй угол"),
-                    com.dathis.rpg.core.gui.Icons.text("<gray>Для зон спавна мобов и областей квестов")));
+                    com.dathis.rpg.core.gui.Icons.text("<gray>Для зон спавна, квестов и зон мира")));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(wandKey, PersistentDataType.BYTE, (byte) 1);
         });
@@ -149,6 +149,25 @@ public final class SelectionWand implements Listener, Runnable {
             dot(player, particle, x1, y1, z); dot(player, particle, x2, y1, z);
             dot(player, particle, x1, y2, z); dot(player, particle, x2, y2, z);
         }
+    }
+
+    /** Подсвечивает коробку частицами FLAME на 10 секунд (кнопка «Показать границы» в меню зон). */
+    public static void showFor(RpgPlugin plugin, Player player, Location a, Location b) {
+        if (a.getWorld() == null) {
+            return;
+        }
+        new org.bukkit.scheduler.BukkitRunnable() {
+            private int times;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || ++times > 20) {
+                    cancel();
+                    return;
+                }
+                outline(player, a, b, Particle.FLAME);
+            }
+        }.runTaskTimer(plugin, 0L, 10L);
     }
 
     private static void dot(Player player, Particle particle, double x, double y, double z) {

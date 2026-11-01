@@ -31,6 +31,11 @@ commands:
     usage: /create-quest [list | wand | reset <игрок> [id]]
     aliases: [createquest, cq]
     permission: rpg.admin
+  create-region:
+    description: Защита мира, зоны строительства и зоны добычи
+    usage: /create-region [list | wand]
+    aliases: [createregion, regions]
+    permission: rpg.admin
   quests:
     description: Журнал квестов игрока
     usage: /quests
@@ -46,3 +51,7 @@ permissions:
     default: op
     children:
       rpg.command: true
+      rpg.region.bypass: true
+  rpg.region.bypass:
+    description: Ломать, строить и открывать блоки везде, несмотря на защиту мира
+    default: op

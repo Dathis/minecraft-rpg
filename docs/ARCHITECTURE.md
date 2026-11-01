@@ -29,7 +29,8 @@ RpgPlugin (точка входа)
 | `modules/hud` | цифры урона, полоска ХП цели |
 | `modules/npc` | NPC, точки в мире, торговля, `/create-npc` |
 | `modules/quest` | квесты, прогресс игроков, `/create-quest`, `/quests` |
-| `modules/region`, `tree`, `dialog` | пока пустые заготовки |
+| `modules/region` | защита мира, зоны строительства и добычи, возврат блоков, `/create-region` |
+| `modules/tree`, `dialog` | пока пустые заготовки |
 
 ## Модули
 
@@ -121,11 +122,25 @@ RpgPlugin (точка входа)
   Админу: `QuestMainMenu`, `QuestEditorMenu`, `ObjectiveMenu`, `RewardsMenu`.
 - С модулем мобов связь через `MobModule.mobInfo/mobInfos/mobIdOf`.
 
+## Защита мира и зоны (`modules/region`)
+
+- `Area`: кубоид (или весь мир, `wholeWorld`), `Kind` BUILD / MINING. У MINING правила `BlockRule` по материалу:
+  `replacement` (null — пусто) и `regenSeconds` (0 — не возвращать). `AreaRegistry`: `data/regions.yml`, раздел
+  `areas`, id `build1` / `mine1`. `ruleAt` ищет правило сначала в обычных зонах, потом в «весь мир».
+- `ProtectionListener`: игрок без `rpg.region.bypass` (OP по умолчанию) вне BUILD-зон не ломает/ставит/выливает,
+  не открывает блоки (`setUseInteractedBlock(DENY)` для `isInteractable`, кроме `regions.allowed-blocks` и дверей),
+  не обтёсывает/вспахивает, не трогает рамки, картины, стойки. Взрывы, огонь, мобы-вредители — тоже вне BUILD-зон.
+- Ломание по правилу (кроме OP в творческом): опыт сразу игроку, `BlockDropItemEvent` перекладывает предметы в
+  инвентарь, на следующем тике ставится замена, `RegenManager.schedule` запоминает исходный `BlockData`.
+- `RegenManager`: очередь возврата (позиция → время, BlockData строкой) в разделе `regen` того же файла, задача раз
+  в секунду, на диск не чаще раза в 10 с и при выключении. Ждёт, пока чанк загружен; поднимает сущности из блока.
+- Листва в MINING-зонах не осыпается (`LeavesDecayEvent`).
+
 ## Хранение
 
 `plugins/MinecraftRPG/`:
 - `config.yml` настройки (новые ключи читаются с дефолтами, старые конфиги не ломаются);
-- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`.
+- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`, `data/regions.yml`.
 
 ## Совместимость с Bedrock
 

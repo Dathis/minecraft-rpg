@@ -5,7 +5,7 @@
 prefix: "<gold>[RPG]</gold> "
 
 modules:
-  regions: true      # защита мира и зоны для строительства
+  regions: true      # защита мира, зоны строительства и добычи (/create-region)
   tree-replant: true # автопосадка деревьев после сруба
   npc: true          # NPC: торговцы и квестодатели (/create-npc)
   dialogs: true      # диалоги с NPC
@@ -42,3 +42,37 @@ spawning:
 npc:
   # NPC поворачивают голову к ближайшему игроку в этом радиусе (блоки). 0 — не поворачиваться.
   look-at-players: 8
+
+regions:
+  # Защита мира: игроки без права rpg.region.bypass (по умолчанию все, кроме OP) не ломают, не ставят
+  # и не открывают блоки. Исключения настраиваются в /create-region: зоны строительства и зоны добычи.
+  protect-world: true
+  # В каких мирах действует защита. Пустой список — во всех.
+  worlds: []
+  # Разрешить открывать деревянные двери, люки, калитки и нажимать кнопки вне зон строительства
+  allow-doors: true
+  # Какими блоками можно пользоваться вне зон строительства (названия по-английски)
+  allowed-blocks:
+    - CRAFTING_TABLE
+    - ENCHANTING_TABLE
+    - ANVIL
+    - CHIPPED_ANVIL
+    - DAMAGED_ANVIL
+    - GRINDSTONE
+    - SMITHING_TABLE
+    - STONECUTTER
+    - LOOM
+    - CARTOGRAPHY_TABLE
+    - ENDER_CHEST
+  # Взрывы (криперы, TNT) не ломают блоки вне зон строительства
+  block-explosions: true
+  # Огонь не распространяется и не сжигает блоки вне зон строительства
+  block-fire: true
+  # Эндермены, разорители, чешуйницы, иссушители и зомби (двери) не трогают блоки вне зон строительства
+  block-mob-griefing: true
+  # В зонах добычи листва не осыпается, пока брёвна ждут возврата
+  keep-leaves-in-mining-zones: true
+  # Добыча из зон добычи падает сразу в инвентарь (и опыт тоже)
+  drops-to-inventory: true
+  # Писать игроку «Здесь нельзя ломать» над хотбаром
+  deny-messages: true
