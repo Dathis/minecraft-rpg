@@ -12,8 +12,12 @@ modules:
   quests: true       # квесты
   shops: true        # магазины-обменники у NPC
   mobs: true         # кастомные мобы
-  weapons: true      # кастомное оружие и перки
+  items: true        # кастомные предметы и оружие (/create-item)
 
 storage:
   # Пока только yaml. Позже можно добавить sqlite.
   type: yaml
+
+items:
+  # Во сколько раз крит. удар сильнее обычного
+  crit-multiplier: 1.5

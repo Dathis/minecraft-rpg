@@ -11,6 +11,11 @@ commands:
     description: Главная команда RPG-плагина
     usage: /rpg <help|modules|reload>
     permission: rpg.command
+  create-item:
+    description: Окно создания кастомных предметов и оружия
+    usage: /create-item [list | give <id> [игрок]]
+    aliases: [createitem, ci]
+    permission: rpg.admin
 
 permissions:
   rpg.command:

@@ -2,17 +2,19 @@ package com.dathis.rpg;
 
 import com.dathis.rpg.core.command.RpgCommand;
 import com.dathis.rpg.core.config.Messages;
+import com.dathis.rpg.core.gui.MenuListener;
+import com.dathis.rpg.core.input.ChatInput;
 import com.dathis.rpg.core.module.ModuleManager;
 import com.dathis.rpg.core.platform.PlatformService;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
+import com.dathis.rpg.modules.item.ItemModule;
 import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
 import com.dathis.rpg.modules.quest.QuestModule;
 import com.dathis.rpg.modules.region.RegionModule;
 import com.dathis.rpg.modules.shop.ShopModule;
 import com.dathis.rpg.modules.tree.TreeReplantModule;
-import com.dathis.rpg.modules.weapon.WeaponModule;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,6 +29,7 @@ public final class RpgPlugin extends JavaPlugin {
     private PlatformService platform;
     private YamlStore store;
     private ModuleManager modules;
+    private ChatInput chatInput;
 
     @Override
     public void onEnable() {
@@ -36,6 +39,9 @@ public final class RpgPlugin extends JavaPlugin {
         platform = new PlatformService(this);
         store = new YamlStore(this);
         modules = new ModuleManager(this);
+        chatInput = new ChatInput(this);
+        getServer().getPluginManager().registerEvents(chatInput, this);
+        getServer().getPluginManager().registerEvents(new MenuListener(this), this);
 
         // Порядок важен: NPC нужны диалогам, квестам и магазинам.
         modules.register(new RegionModule());
@@ -45,7 +51,7 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new QuestModule());
         modules.register(new ShopModule());
         modules.register(new MobModule());
-        modules.register(new WeaponModule());
+        modules.register(new ItemModule());
         modules.enableAll();
 
         PluginCommand rpg = getCommand("rpg");
@@ -60,6 +66,12 @@ public final class RpgPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Закрываем наши меню, чтобы после /reload никто не остался в «мёртвом» окне
+        getServer().getOnlinePlayers().forEach(p -> {
+            if (p.getOpenInventory().getTopInventory().getHolder() instanceof com.dathis.rpg.core.gui.Menu) {
+                p.closeInventory();
+            }
+        });
         if (modules != null) {
             modules.disableAll();
         }
@@ -87,6 +99,10 @@ public final class RpgPlugin extends JavaPlugin {
 
     public YamlStore store() {
         return store;
+    }
+
+    public ChatInput chatInput() {
+        return chatInput;
     }
 
     public ModuleManager modules() {
