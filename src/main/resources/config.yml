@@ -7,10 +7,9 @@ prefix: "<gold>[RPG]</gold> "
 modules:
   regions: true      # защита мира и зоны для строительства
   tree-replant: true # автопосадка деревьев после сруба
-  npc: true          # NPC
+  npc: true          # NPC: торговцы и квестодатели (/create-npc)
   dialogs: true      # диалоги с NPC
-  quests: true       # квесты
-  shops: true        # магазины-обменники у NPC
+  quests: true       # квесты (/create-quest, /quests)
   mobs: true         # кастомные мобы
   items: true        # кастомные предметы и оружие (/create-item)
   hud: true          # цифры урона и ХП цели сверху экрана
@@ -39,3 +38,7 @@ spawning:
   block-natural-monsters: true
   # То же для животных (коровы, свиньи и т.д.)
   block-natural-animals: false
+
+npc:
+  # NPC поворачивают голову к ближайшему игроку в этом радиусе (блоки). 0 — не поворачиваться.
+  look-at-players: 8

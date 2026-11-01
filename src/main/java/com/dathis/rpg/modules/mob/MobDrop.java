@@ -1,8 +1,8 @@
 package com.dathis.rpg.modules.mob;
 
+import com.dathis.rpg.core.storage.ItemCodec;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,15 +25,11 @@ final class MobDrop {
     }
 
     static String encode(ItemStack item) {
-        return Base64.getEncoder().encodeToString(item.serializeAsBytes());
+        return ItemCodec.encode(item);
     }
 
     static ItemStack decode(Object data) {
-        try {
-            return ItemStack.deserializeBytes(Base64.getDecoder().decode(String.valueOf(data)));
-        } catch (Exception e) {
-            return null;
-        }
+        return ItemCodec.decode(data);
     }
 
     Map<String, Object> serialize() {

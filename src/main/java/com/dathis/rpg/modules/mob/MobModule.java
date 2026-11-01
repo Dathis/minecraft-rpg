@@ -37,7 +37,6 @@ public final class MobModule extends AbstractModule {
 
     private MobRegistry registry;
     private ZoneManager zones;
-    private SelectionWand wand;
     private final List<BukkitTask> tasks = new ArrayList<>();
 
     public MobModule() {
@@ -53,10 +52,7 @@ public final class MobModule extends AbstractModule {
         zones = new ZoneManager(this);
         zones.load();
         listen(zones);
-        wand = new SelectionWand(plugin);
-        listen(wand);
         tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, zones, 40L, 20L));
-        tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, wand, 10L, 10L));
         listen(new NaturalSpawnBlocker(
                 plugin.getConfig().getBoolean("spawning.block-natural-monsters", true),
                 plugin.getConfig().getBoolean("spawning.block-natural-animals", false)));
@@ -80,6 +76,30 @@ public final class MobModule extends AbstractModule {
         }
     }
 
+    /** Что о кастомном мобе нужно другим модулям (квесты «Убить ...»). */
+    public record MobInfo(String id, Component name, ItemStack icon) {
+    }
+
+    /** null, если моба с таким id нет. */
+    public MobInfo mobInfo(String id) {
+        CustomMob mob = registry.get(id);
+        return mob == null ? null : new MobInfo(mob.id, mob.displayName(), egg(mob));
+    }
+
+    public List<MobInfo> mobInfos() {
+        List<MobInfo> list = new ArrayList<>();
+        for (CustomMob mob : registry.all()) {
+            list.add(new MobInfo(mob.id, mob.displayName(), egg(mob)));
+        }
+        return list;
+    }
+
+    /** id шаблона у сущности или null, если это не кастомный моб. */
+    public String mobIdOf(Entity entity) {
+        CustomMob mob = registry.of(entity);
+        return mob == null ? null : mob.id;
+    }
+
     RpgPlugin plugin() {
         return plugin;
     }
@@ -90,10 +110,6 @@ public final class MobModule extends AbstractModule {
 
     ZoneManager zones() {
         return zones;
-    }
-
-    SelectionWand wand() {
-        return wand;
     }
 
     /** Спавнит моба по шаблону. */
@@ -133,7 +149,7 @@ public final class MobModule extends AbstractModule {
         }
     }
 
-    static Material eggMaterial(EntityType type) {
+    public static Material eggMaterial(EntityType type) {
         Material egg = Bukkit.getItemFactory().getSpawnEgg(type);
         if (egg == null) {
             egg = Material.matchMaterial(type.name() + "_SPAWN_EGG");

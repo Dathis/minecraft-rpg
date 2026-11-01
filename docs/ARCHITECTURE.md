@@ -18,15 +18,18 @@ RpgPlugin (точка входа)
 | Пакет | Что внутри |
 |---|---|
 | `core/module` | `RpgModule`, `AbstractModule` (слушатели снимаются при выключении), `ModuleManager` |
-| `core/gui` | `Menu` (окно-сундук с кнопками и слотами-приёмниками), `MenuListener`, `Icons` (иконки кнопок) |
+| `core/gui` | `Menu` (окно-сундук с кнопками и слотами-приёмниками), `MenuListener`, `Icons` (иконки, `wrap` переносит текст), `ChoiceMenu` (выбор из списка со страницами), `EquipmentMenu` (снаряжение мобов и NPC) |
+| `core/selection` | `SelectionWand`: палочка выделения областей (зоны спавна, «Разведать»), принадлежит `RpgPlugin` |
 | `core/input` | `ChatInput` (следующее сообщение игрока идёт в обработчик), `Numbers` (разбор `15`, `15%`, `10-20`) |
-| `core/storage` | `YamlStore`: по файлу на модуль |
+| `core/storage` | `YamlStore`: по файлу на модуль; `ItemCodec`: ItemStack ↔ base64 |
 | `core/platform` | `PlatformService.isBedrock(player)` |
 | `core/config` | `Messages` |
 | `modules/item` | кастомные предметы, оружие, броня, `/create-item` |
 | `modules/mob` | кастомные мобы, зоны спавна, запрет естественного спавна, `/create-mob` |
 | `modules/hud` | цифры урона, полоска ХП цели |
-| `modules/region`, `tree`, `npc`, `dialog`, `quest`, `shop` | пока пустые заготовки |
+| `modules/npc` | NPC, точки в мире, торговля, `/create-npc` |
+| `modules/quest` | квесты, прогресс игроков, `/create-quest`, `/quests` |
+| `modules/region`, `tree`, `dialog` | пока пустые заготовки |
 
 ## Модули
 
@@ -80,7 +83,7 @@ RpgPlugin (точка входа)
   которой есть игрок (64 блока), считает своих мобов (PDC `zone_id`, в радиусе зоны + 48) и досоздаёт до `maxAlive`.
   Убитые ждут `respawnSeconds` (таймеры в памяти, после рестарта зона просто заполняется). Место спавна: случайный
   твёрдый блок в зоне с двумя свободными над ним.
-- `SelectionWand`: огненный стержень с PDC `selection_wand`, удар — первый угол, ПКМ — второй, частицы границ
+- `SelectionWand` (теперь `core/selection`): огненный стержень с PDC `selection_wand`, удар — первый угол, ПКМ — второй, частицы границ
   каждые 10 тиков, пока стержень в руке.
 
 ## HUD (`modules/hud`)
@@ -91,11 +94,38 @@ RpgPlugin (точка входа)
 - `TargetHealthBar`: каждые 2 тика для игрока ищет `getTargetEntity(range)` или цель последнего удара (3 с) и
   показывает Adventure BossBar с названием и `HP x / y`, цвет по проценту.
 
+## NPC (`modules/npc`)
+
+- `NpcTemplate` шаблон (публичные `id()`, `name()`, `displayName()`, `hasTrades()`): тип, имя (MiniMessage),
+  приветствие, профессия/местность жителя, снаряжение (скин = `PLAYER_HEAD` в слоте HEAD, `NpcSkins`), сделки `NpcTrade`.
+  `NpcPlacement` — точка в мире. Всё в `data/npcs.yml` (`npcs.<id>`, `placements.<id>`).
+- `NpcModule` ставит сущности: `setPersistent(false)` (не сохраняются в чанк), без ИИ, бессмертные, тихие.
+  Раз в секунду `upkeep` ставит недостающих NPC на точки в загруженных чанках (`live`: точка → UUID).
+  Раз в 5 тиков поворачивает их к ближайшему игроку. Сохранение шаблона пересоздаёт его NPC.
+- `NpcListener`: клик (PlayerInteractEntity / InteractAt для стоек) → приветствие → `NpcInteractEvent`. Если событие
+  не отменили, открывается торговля (`Bukkit.createMerchant`). Shift-клик админа открывает `PlacementMenu`.
+  Отменяет урон, горение, превращения, цели; убирает чужие копии при загрузке чанка.
+- `NpcModule.QuestLink` — крючок, через который модуль квестов показывает кнопку «Квесты» в редакторе NPC.
+
+## Квесты (`modules/quest`)
+
+- `Quest`: название, NPC, описание (абзацы), цели `Objective` (KILL `mob:<id>`/`type:<ENTITY>`, BRING ItemStack,
+  TALK id NPC, EXPLORE область), награды (ItemStack + опыт), `requiredQuest`, `requiredLevel` (пока не проверяется).
+  `data/quests.yml`, id `quest1`.
+- `QuestProgress`: `data/quest-players.yml`, `players.<uuid>.active.<quest>` = счётчики целей, `completed` — список.
+  Пишется на диск раз в 30 с, при выходе игрока и выключении. Прогресс «Принести» не хранится, считается по инвентарю.
+- `QuestModule.status`: LOCKED / AVAILABLE / ACTIVE / READY / COMPLETED → вид книги (`book`).
+- `QuestListener`: `NpcInteractEvent` (засчитывает «Поговорить», открывает `QuestBoardMenu`, если у NPC есть квесты),
+  `EntityDeathEvent` (убийства). «Разведать» проверяется задачей раз в 10 тиков.
+- Игроку: `QuestBoardMenu` (книги NPC или журнал `/quests`), `QuestViewMenu` (цели, награды, взять/сдать/отказаться).
+  Админу: `QuestMainMenu`, `QuestEditorMenu`, `ObjectiveMenu`, `RewardsMenu`.
+- С модулем мобов связь через `MobModule.mobInfo/mobInfos/mobIdOf`.
+
 ## Хранение
 
 `plugins/MinecraftRPG/`:
 - `config.yml` настройки (новые ключи читаются с дефолтами, старые конфиги не ломаются);
-- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`.
+- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`.
 
 ## Совместимость с Bedrock
 

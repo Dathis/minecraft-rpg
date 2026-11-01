@@ -1,4 +1,4 @@
-package com.dathis.rpg.modules.mob;
+package com.dathis.rpg.core.selection;
 
 import com.dathis.rpg.RpgPlugin;
 import org.bukkit.Location;
@@ -26,14 +26,15 @@ import java.util.UUID;
 /**
  * Палочка выделения: удар по блоку — первый угол, ПКМ по блоку — второй угол.
  * Пока палочка в руке, границы выделения подсвечиваются частицами.
+ * Общая для всех модулей (зоны спавна мобов, области квестов «Разведать»).
  */
-final class SelectionWand implements Listener, Runnable {
+public final class SelectionWand implements Listener, Runnable {
 
-    static final class Selection {
-        Location first;
-        Location second;
+    public static final class Selection {
+        public Location first;
+        public Location second;
 
-        boolean complete() {
+        public boolean complete() {
             return first != null && second != null && first.getWorld().equals(second.getWorld());
         }
     }
@@ -42,26 +43,26 @@ final class SelectionWand implements Listener, Runnable {
     private final NamespacedKey wandKey;
     private final Map<UUID, Selection> selections = new HashMap<>();
 
-    SelectionWand(RpgPlugin plugin) {
+    public SelectionWand(RpgPlugin plugin) {
         this.plugin = plugin;
         this.wandKey = new NamespacedKey(plugin, "selection_wand");
     }
 
-    ItemStack create() {
+    public ItemStack create() {
         ItemStack wand = new ItemStack(Material.BLAZE_ROD);
         wand.editMeta(meta -> {
             meta.displayName(com.dathis.rpg.core.gui.Icons.text("<gold>Палочка выделения"));
             meta.lore(java.util.List.of(
                     com.dathis.rpg.core.gui.Icons.text("<gray>Удар по блоку — первый угол"),
                     com.dathis.rpg.core.gui.Icons.text("<gray>ПКМ по блоку — второй угол"),
-                    com.dathis.rpg.core.gui.Icons.text("<gray>Потом: /create-mob → моб → Зоны спавна")));
+                    com.dathis.rpg.core.gui.Icons.text("<gray>Для зон спавна мобов и областей квестов")));
             meta.addItemFlags(ItemFlag.values());
             meta.getPersistentDataContainer().set(wandKey, PersistentDataType.BYTE, (byte) 1);
         });
         return wand;
     }
 
-    Selection selection(Player player) {
+    public Selection selection(Player player) {
         return selections.get(player.getUniqueId());
     }
 
@@ -126,7 +127,7 @@ final class SelectionWand implements Listener, Runnable {
     }
 
     /** Рисует рёбра коробки частицами, видимыми только этому игроку. */
-    static void outline(Player player, Location a, Location b, Particle particle) {
+    public static void outline(Player player, Location a, Location b, Particle particle) {
         World world = a.getWorld();
         if (world == null || !world.equals(player.getWorld())) {
             return;
