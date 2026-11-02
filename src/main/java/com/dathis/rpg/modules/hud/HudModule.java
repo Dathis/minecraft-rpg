@@ -32,7 +32,7 @@ public final class HudModule extends AbstractModule {
             listen(indicators);
         }
         if (plugin.getConfig().getBoolean("hud.target-health", true)) {
-            healthBar = new TargetHealthBar(plugin.getConfig().getInt("hud.target-range", 20));
+            healthBar = new TargetHealthBar(plugin.getConfig().getInt("hud.target-range", 20), plugin.health());
             listen(healthBar);
             healthTask = plugin.getServer().getScheduler().runTaskTimer(plugin, healthBar, 2L, 2L);
         }

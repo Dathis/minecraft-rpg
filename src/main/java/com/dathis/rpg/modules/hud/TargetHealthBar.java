@@ -1,11 +1,10 @@
 package com.dathis.rpg.modules.hud;
 
+import com.dathis.rpg.core.combat.HealthService;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -32,11 +31,13 @@ final class TargetHealthBar implements Runnable, Listener {
     }
 
     private final int range;
+    private final HealthService health;
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private final Map<UUID, LastHit> lastHits = new HashMap<>();
 
-    TargetHealthBar(int range) {
+    TargetHealthBar(int range, HealthService health) {
         this.range = range;
+        this.health = health;
     }
 
     @Override
@@ -73,9 +74,9 @@ final class TargetHealthBar implements Runnable, Listener {
     }
 
     private void show(Player player, LivingEntity target) {
-        AttributeInstance maxAttr = target.getAttribute(Attribute.MAX_HEALTH);
-        double max = maxAttr != null ? maxAttr.getValue() : Math.max(1, target.getHealth());
-        double health = Math.max(0, target.getHealth());
+        // Своё ХП (может быть больше 1024), если оно есть у цели
+        double max = Math.max(1, this.health.maxHealth(target));
+        double health = Math.max(0, this.health.health(target));
         float progress = (float) Math.max(0, Math.min(1, health / max));
 
         Component name = target.customName() != null

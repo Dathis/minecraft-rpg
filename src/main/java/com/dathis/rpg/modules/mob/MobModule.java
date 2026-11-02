@@ -1,6 +1,7 @@
 package com.dathis.rpg.modules.mob;
 
 import com.dathis.rpg.RpgPlugin;
+import com.dathis.rpg.core.combat.HealthService;
 import com.dathis.rpg.core.input.Numbers;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -32,12 +33,22 @@ import java.util.List;
  */
 public final class MobModule extends AbstractModule {
 
-    /** Предел ванильного атрибута max_health. */
-    static final double MAX_HEALTH_LIMIT = 1024;
+    /**
+     * Предел ванильного атрибута max_health. Наше ХП моба может быть больше (HealthService),
+     * ванильное тогда — только «зеркало» для показа.
+     */
+    static final double VANILLA_HEALTH_LIMIT = 1024;
+    /** Предел ХП в редакторе, просто от опечаток. */
+    static final double MAX_HEALTH_LIMIT = 1_000_000_000;
 
     private MobRegistry registry;
     private ZoneManager zones;
     private MobBrain brain;
+    /** ХП и броня моба из шаблона для HealthService. */
+    private final HealthService.Provider stats = entity -> {
+        CustomMob mob = registry == null ? null : registry.of(entity);
+        return mob == null ? null : new HealthService.Bonus(Math.max(1, mob.health), mob.armor);
+    };
     private final List<BukkitTask> tasks = new ArrayList<>();
 
     public MobModule() {
@@ -49,6 +60,7 @@ public final class MobModule extends AbstractModule {
         registry = new MobRegistry(plugin);
         registry.load();
         listen(new MobListener(this));
+        plugin.health().addProvider(stats);
         brain = new MobBrain(this);
         listen(brain);
         brain.start();
@@ -74,6 +86,7 @@ public final class MobModule extends AbstractModule {
     protected void onDisable() {
         tasks.forEach(BukkitTask::cancel);
         tasks.clear();
+        plugin.health().removeProvider(stats);
         if (brain != null) {
             brain.stop();
         }
@@ -138,12 +151,14 @@ public final class MobModule extends AbstractModule {
             ageable.setAdult();
         }
         if (entity instanceof LivingEntity living) {
-            double health = Math.max(1, Math.min(MAX_HEALTH_LIMIT, mob.health));
+            double health = Math.max(1, Math.min(VANILLA_HEALTH_LIMIT, mob.health));
             AttributeInstance max = living.getAttribute(Attribute.MAX_HEALTH);
             if (max != null) {
                 max.setBaseValue(health);
                 living.setHealth(health);
             }
+            // Настоящее ХП (может быть больше 1024) — в PDC, ванильное показывает долю
+            plugin.health().fill(living);
             living.setRemoveWhenFarAway(false);
             EntityEquipment equipment = living.getEquipment();
             if (equipment != null) {
@@ -184,6 +199,9 @@ public final class MobModule extends AbstractModule {
         List<Component> lines = new ArrayList<>();
         lines.add(line("Ранг: " + mob.tier.label, NamedTextColor.GRAY));
         lines.add(line("ХП: " + Numbers.format(mob.health), NamedTextColor.GREEN));
+        if (mob.armor > 0) {
+            lines.add(line("Броня: " + Numbers.format(mob.armor), NamedTextColor.AQUA));
+        }
         lines.add(line("Урон: " + Numbers.format(mob.damageMin) + " - " + Numbers.format(mob.damageMax), NamedTextColor.RED));
         lines.add(line(mob.hostile ? "Враждебный: нападает сам" : "Нападает только в ответ", NamedTextColor.YELLOW));
         lines.add(line("Снаряжение: " + mob.equipment.size() + " шт.", NamedTextColor.AQUA));

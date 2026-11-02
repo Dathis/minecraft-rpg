@@ -30,6 +30,7 @@ public final class ItemModule extends AbstractModule {
         listen(new CombatListener(this));
         armor = new ArmorListener(this);
         listen(armor);
+        plugin.health().addProvider(armor);
         armorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, armor, 20L, 20L);
 
         PluginCommand command = plugin.getCommand("create-item");
@@ -47,7 +48,8 @@ public final class ItemModule extends AbstractModule {
             armorTask = null;
         }
         if (armor != null) {
-            armor.removeAll();
+            plugin.health().removeProvider(armor);
+            armor.clear();
             armor = null;
         }
         PluginCommand command = plugin.getCommand("create-item");

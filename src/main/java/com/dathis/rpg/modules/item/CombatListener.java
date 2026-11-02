@@ -3,8 +3,6 @@ package com.dathis.rpg.modules.item;
 import com.dathis.rpg.modules.hud.HudModule;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +18,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * Урон кастомного оружия:
  * 1) случайный урон от min до max (с учётом заряда атаки, как в ванилле — спам кликами бьёт слабее);
  * 2) шанс крита — урон умножается на items.crit-multiplier из config.yml;
- * 3) вампиризм — атакующий лечится на N% от нанесённого урона.
+ * 3) вампиризм — атакующий лечится на N% от урона удара (до брони цели).
+ * Броня цели и своё ХП считаются дальше, в модуле health.
  */
 final class CombatListener implements Listener {
 
@@ -76,11 +75,6 @@ final class CombatListener implements Listener {
     }
 
     private void heal(Player player, double amount) {
-        if (player.isDead()) {
-            return;
-        }
-        AttributeInstance maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
-        double cap = maxHealth != null ? maxHealth.getValue() : 20.0;
-        player.setHealth(Math.min(cap, player.getHealth() + amount));
+        module.plugin().health().heal(player, amount);
     }
 }

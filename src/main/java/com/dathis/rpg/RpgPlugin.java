@@ -1,5 +1,6 @@
 package com.dathis.rpg;
 
+import com.dathis.rpg.core.combat.HealthService;
 import com.dathis.rpg.core.command.RpgCommand;
 import com.dathis.rpg.core.config.Messages;
 import com.dathis.rpg.core.gui.MenuListener;
@@ -9,6 +10,7 @@ import com.dathis.rpg.core.platform.PlatformService;
 import com.dathis.rpg.core.selection.SelectionWand;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
+import com.dathis.rpg.modules.health.HealthModule;
 import com.dathis.rpg.modules.hud.HudModule;
 import com.dathis.rpg.modules.item.ItemModule;
 import com.dathis.rpg.modules.mob.MobModule;
@@ -32,6 +34,7 @@ public final class RpgPlugin extends JavaPlugin {
     private ModuleManager modules;
     private ChatInput chatInput;
     private SelectionWand selectionWand;
+    private HealthService health;
 
     @Override
     public void onEnable() {
@@ -44,6 +47,7 @@ public final class RpgPlugin extends JavaPlugin {
         chatInput = new ChatInput(this);
         getServer().getPluginManager().registerEvents(chatInput, this);
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
+        health = new HealthService(this);
         selectionWand = new SelectionWand(this);
         getServer().getPluginManager().registerEvents(selectionWand, this);
         getServer().getScheduler().runTaskTimer(this, selectionWand, 10L, 10L);
@@ -57,6 +61,8 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new MobModule());
         modules.register(new ItemModule());
         modules.register(new HudModule());
+        // Последним: к его включению предметы и мобы уже отдали свои статы (броня, ХП шаблонов)
+        modules.register(new HealthModule());
         modules.enableAll();
 
         PluginCommand rpg = getCommand("rpg");
@@ -113,6 +119,11 @@ public final class RpgPlugin extends JavaPlugin {
     /** Палочка выделения областей (зоны спавна, области квестов). */
     public SelectionWand selectionWand() {
         return selectionWand;
+    }
+
+    /** Своё ХП и броня. Пока модуль health выключен, отвечает ванильными значениями. */
+    public HealthService health() {
+        return health;
     }
 
     public ModuleManager modules() {

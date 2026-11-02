@@ -39,7 +39,8 @@ public final class CustomMob {
     EntityType type;
     String name;
     Tier tier = Tier.NORMAL;
-    double health = 20;
+    double health = 20;      // своё ХП, без предела 1024 (см. HealthService)
+    double armor;            // очки брони, снижают урон по формуле из config.yml (health.*)
     double damageMin = 3;
     double damageMax = 5;
     boolean vanillaDrops;    // оставлять ли обычный лут моба
@@ -76,6 +77,7 @@ public final class CustomMob {
         c.id = id;
         c.tier = tier;
         c.health = health;
+        c.armor = armor;
         c.damageMin = damageMin;
         c.damageMax = damageMax;
         c.vanillaDrops = vanillaDrops;
@@ -94,6 +96,7 @@ public final class CustomMob {
         s.set("name", name);
         s.set("tier", tier.name());
         s.set("health", health);
+        s.set("armor", armor);
         s.set("damage-min", damageMin);
         s.set("damage-max", damageMax);
         s.set("vanilla-drops", vanillaDrops);
@@ -122,6 +125,7 @@ public final class CustomMob {
             mob.tier = Tier.NORMAL;
         }
         mob.health = s.getDouble("health", 20);
+        mob.armor = s.getDouble("armor", 0);
         mob.damageMin = s.getDouble("damage-min", 3);
         mob.damageMax = s.getDouble("damage-max", 5);
         mob.vanillaDrops = s.getBoolean("vanilla-drops", false);
