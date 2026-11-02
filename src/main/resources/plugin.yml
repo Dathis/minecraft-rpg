@@ -46,6 +46,20 @@ commands:
     usage: /level [игрок | set <игрок> <уровень> | give <игрок> <опыт> | reset <игрок>]
     aliases: [lvl, lv]
     permission: rpg.command
+  menu:
+    description: Главное меню игрока (то же, что компас в хотбаре)
+    usage: /menu
+    aliases: [rpgmenu]
+    permission: rpg.command
+  stats:
+    description: Окно персонажа (админу — чужое)
+    usage: /stats [игрок]
+    aliases: [character, char]
+    permission: rpg.command
+  mana:
+    description: Мана персонажа (админу — изменить ману игрока)
+    usage: /mana [игрок | set|give|take <игрок> <число> | fill <игрок>]
+    permission: rpg.command
   quests:
     description: Журнал квестов игрока
     usage: /quests

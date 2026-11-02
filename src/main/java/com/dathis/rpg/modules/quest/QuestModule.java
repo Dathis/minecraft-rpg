@@ -4,6 +4,7 @@ import com.dathis.rpg.RpgPlugin;
 import com.dathis.rpg.core.gui.ChoiceMenu;
 import com.dathis.rpg.core.gui.Icons;
 import com.dathis.rpg.core.gui.Menu;
+import com.dathis.rpg.core.hud.Sidebar;
 import com.dathis.rpg.core.module.AbstractModule;
 import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
@@ -46,6 +47,8 @@ public final class QuestModule extends AbstractModule {
     private QuestProgress progress;
     private NamespacedKey itemIdKey;
     private final List<BukkitTask> tasks = new ArrayList<>();
+    /** Текущий квест на боковой панели. */
+    private final Sidebar.Section sidebarSection = this::sidebarLines;
 
     public QuestModule() {
         super("quests", "Квесты");
@@ -80,10 +83,12 @@ public final class QuestModule extends AbstractModule {
 
         command("create-quest", new CreateQuestCommand(this));
         command("quests", new CreateQuestCommand.QuestsCommand(this));
+        plugin.sidebar().add(50, sidebarSection);
     }
 
     @Override
     protected void onDisable() {
+        plugin.sidebar().remove(sidebarSection);
         tasks.forEach(BukkitTask::cancel);
         tasks.clear();
         progress.flush();
@@ -274,6 +279,42 @@ public final class QuestModule extends AbstractModule {
             }
         }
         return list;
+    }
+
+    /**
+     * Строки боковой панели: первый взятый квест и его первая невыполненная цель («Убить Волк 3/5»)
+     * или «Можно сдать». Короче, чем в книге: панель узкая, особенно на телефоне.
+     */
+    private void sidebarLines(Player player, List<String> out) {
+        List<Quest> active = activeQuests(player);
+        if (active.isEmpty()) {
+            return;
+        }
+        Quest quest = active.get(0);
+        String name = quest.name;
+        if (!name.contains("<") && name.length() > 24) {
+            name = name.substring(0, 23).trim() + "...";
+        }
+        out.add("<gold>" + name);
+        String goal = null;
+        for (int i = 0; i < quest.objectives.size(); i++) {
+            Objective objective = quest.objectives.get(i);
+            int count = count(player, quest, i);
+            if (count < objective.amount) {
+                String target = targetName(objective);
+                goal = switch (objective.type) {
+                    case KILL -> "<yellow>Убить " + target + "<yellow> " + count + "/" + objective.amount;
+                    case BRING -> "<yellow>Принести " + target + "<yellow> " + count + "/" + objective.amount;
+                    case TALK -> "<yellow>Поговорить: " + target;
+                    case EXPLORE -> "<yellow>Разведать: " + target;
+                };
+                break;
+            }
+        }
+        out.add(goal != null ? goal : "<green>Можно сдать");
+        if (active.size() > 1) {
+            out.add("<dark_gray>Ещё квестов: " + (active.size() - 1));
+        }
     }
 
     private void checkExplore() {

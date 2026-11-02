@@ -107,7 +107,7 @@ final class EditorMenu extends Menu {
 
         // Свойства брони
         if (draft.isArmor()) {
-            set(29, Icons.of(Material.SHIELD, "<aqua>Броня",
+            set(28, Icons.of(Material.SHIELD, "<aqua>Броня",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.armor),
                             "<gray>Броня всех частей складывается, предела нет.",
                             "<gray>Снижает урон: " + reductionHint(100) + " при 100,",
@@ -115,20 +115,33 @@ final class EditorMenu extends Menu {
                             "", "<green>Нажмите и напишите число"),
                     p -> ask(p, "<yellow>Сколько очков брони?",
                             text -> draft.armor = range(p, text, 0, 1_000_000, draft.armor)));
-            set(31, Icons.of(Material.GOLDEN_APPLE, "<red>Здоровье",
+            set(29, Icons.of(Material.GOLDEN_APPLE, "<red>Здоровье",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.bonusHealth) + " ХП",
                             "<gray>Добавляется к " + ItemFactory.num(module.plugin().health().playerBase()) + " ХП игрока, пока броня",
                             "<gray>надета. Предела нет: сердца показывают долю.",
                             "", "<green>Нажмите и напишите число"),
                     p -> ask(p, "<yellow>Сколько ХП добавить?",
                             text -> draft.bonusHealth = range(p, text, 0, 1_000_000, draft.bonusHealth)));
-            set(33, Icons.of(Material.GLISTERING_MELON_SLICE, "<green>Регенерация",
+            set(30, Icons.of(Material.GLISTERING_MELON_SLICE, "<green>Регенерация",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.regeneration) + " ХП/сек",
                             "<gray>Лечит каждую секунду, пока броня надета.",
                             "<gray>Не работает 5 секунд после получения урона.",
                             "", "<green>Нажмите и напишите число, например <white>0.5"),
                     p -> ask(p, "<yellow>Сколько ХП в секунду восстанавливать?",
                             text -> draft.regeneration = range(p, text, 0, 1_000_000, draft.regeneration)));
+            set(32, Icons.of(Material.LAPIS_LAZULI, "<blue>Мана",
+                            "<gray>Сейчас: <white>+" + ItemFactory.num(draft.bonusMana),
+                            "<gray>Добавляется к максимуму маны, пока броня надета.",
+                            "<gray>Мана нужна для способностей.",
+                            "", "<green>Нажмите и напишите число"),
+                    p -> ask(p, "<yellow>Сколько маны добавить?",
+                            text -> draft.bonusMana = range(p, text, 0, 1_000_000, draft.bonusMana)));
+            set(33, Icons.of(Material.HEART_OF_THE_SEA, "<blue>Восстановление маны",
+                            "<gray>Сейчас: <white>+" + ItemFactory.num(draft.manaRegen) + " в секунду",
+                            "<gray>Добавляется к обычному восстановлению маны.",
+                            "", "<green>Нажмите и напишите число, например <white>1.5"),
+                    p -> ask(p, "<yellow>Сколько маны в секунду добавить?",
+                            text -> draft.manaRegen = range(p, text, 0, 1_000_000, draft.manaRegen)));
         }
 
         // Нижний ряд

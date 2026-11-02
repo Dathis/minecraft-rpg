@@ -4,10 +4,12 @@ import com.dathis.rpg.core.combat.HealthService;
 import com.dathis.rpg.core.command.RpgCommand;
 import com.dathis.rpg.core.config.Messages;
 import com.dathis.rpg.core.gui.MenuListener;
+import com.dathis.rpg.core.hud.Sidebar;
 import com.dathis.rpg.core.input.ChatInput;
 import com.dathis.rpg.core.module.ModuleManager;
 import com.dathis.rpg.core.platform.PlatformService;
 import com.dathis.rpg.core.progression.LevelService;
+import com.dathis.rpg.core.progression.ManaService;
 import com.dathis.rpg.core.selection.SelectionWand;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
@@ -15,6 +17,8 @@ import com.dathis.rpg.modules.health.HealthModule;
 import com.dathis.rpg.modules.hud.HudModule;
 import com.dathis.rpg.modules.item.ItemModule;
 import com.dathis.rpg.modules.level.LevelModule;
+import com.dathis.rpg.modules.mana.ManaModule;
+import com.dathis.rpg.modules.menu.MenuModule;
 import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
 import com.dathis.rpg.modules.quest.QuestModule;
@@ -38,6 +42,8 @@ public final class RpgPlugin extends JavaPlugin {
     private SelectionWand selectionWand;
     private HealthService health;
     private LevelService levels;
+    private ManaService mana;
+    private Sidebar sidebar;
 
     @Override
     public void onEnable() {
@@ -52,6 +58,8 @@ public final class RpgPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         health = new HealthService(this);
         levels = new LevelService(this);
+        mana = new ManaService(this);
+        sidebar = new Sidebar(this);
         selectionWand = new SelectionWand(this);
         getServer().getPluginManager().registerEvents(selectionWand, this);
         getServer().getScheduler().runTaskTimer(this, selectionWand, 10L, 10L);
@@ -66,6 +74,8 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new ItemModule());
         modules.register(new HudModule());
         modules.register(new LevelModule());
+        modules.register(new ManaModule());
+        modules.register(new MenuModule());
         // Последним: к его включению предметы и мобы уже отдали свои статы (броня, ХП шаблонов)
         modules.register(new HealthModule());
         modules.enableAll();
@@ -134,6 +144,16 @@ public final class RpgPlugin extends JavaPlugin {
     /** Уровни и опыт персонажа. Пока модуль levels выключен, требования к уровню не проверяются. */
     public LevelService levels() {
         return levels;
+    }
+
+    /** Мана игрока. Пока модуль mana выключен, трата маны всегда разрешена. */
+    public ManaService mana() {
+        return mana;
+    }
+
+    /** Строки боковой панели от разных модулей и выбор игрока «показывать / скрыть». */
+    public Sidebar sidebar() {
+        return sidebar;
     }
 
     public ModuleManager modules() {
