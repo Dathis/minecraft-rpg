@@ -58,14 +58,28 @@ final class MobEditorMenu extends Menu {
                 });
         set(22, Icons.of(Material.GOLDEN_APPLE, "<green>ХП",
                         "<gray>Сейчас: <white>" + Numbers.format(draft.health),
-                        "<gray>Максимум: " + Numbers.format(MobModule.MAX_HEALTH_LIMIT),
+                        "<gray>Предела нет: полоска ХП показывает долю",
                         "", "<green>Нажмите и напишите число"),
-                p -> ask(p, "<yellow>Введите ХП моба (1-" + Numbers.format(MobModule.MAX_HEALTH_LIMIT) + "):", text -> {
+                p -> ask(p, "<yellow>Введите ХП моба (от 1):", text -> {
                     OptionalDouble value = Numbers.parse(text);
                     if (value.isPresent() && value.getAsDouble() >= 1 && value.getAsDouble() <= MobModule.MAX_HEALTH_LIMIT) {
                         draft.health = value.getAsDouble();
                     } else {
-                        module.plugin().messages().send(p, "<red>Нужно число от 1 до " + Numbers.format(MobModule.MAX_HEALTH_LIMIT) + ".</red>");
+                        module.plugin().messages().send(p, "<red>Нужно число от 1.</red>");
+                    }
+                }));
+        set(30, Icons.of(Material.SHIELD, "<aqua>Броня",
+                        "<gray>Сейчас: <white>" + Numbers.format(draft.armor),
+                        "<gray>Снижает урон по мобу: " + reduction(100) + " при 100,",
+                        "<gray>" + reduction(1000) + " при 1000. Ванильная броня",
+                        "<gray>из снаряжения добавляется сверху.",
+                        "", "<green>Нажмите и напишите число"),
+                p -> ask(p, "<yellow>Введите броню моба (0 и больше):", text -> {
+                    OptionalDouble value = Numbers.parse(text);
+                    if (value.isPresent() && value.getAsDouble() >= 0 && value.getAsDouble() <= MobModule.MAX_HEALTH_LIMIT) {
+                        draft.armor = value.getAsDouble();
+                    } else {
+                        module.plugin().messages().send(p, "<red>Нужно число от 0.</red>");
                     }
                 }));
         set(23, Icons.of(Material.IRON_SWORD, "<red>Урон",
@@ -169,6 +183,10 @@ final class MobEditorMenu extends Menu {
             apply.accept(text);
             open(player);
         }, () -> open(player));
+    }
+
+    private String reduction(double armor) {
+        return Math.round(module.plugin().health().armorReduction(armor) * 100) + "%";
     }
 
     static String pretty(CustomMob mob) {

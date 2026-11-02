@@ -99,25 +99,26 @@ final class EditorMenu extends Menu {
         if (draft.isArmor()) {
             set(29, Icons.of(Material.SHIELD, "<aqua>Броня",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.armor),
-                            "<gray>Как у ванильной: алмазный нагрудник = 8.",
-                            "<gray>Всего у игрока максимум 30 (предел Minecraft).",
+                            "<gray>Броня всех частей складывается, предела нет.",
+                            "<gray>Снижает урон: " + reductionHint(100) + " при 100,",
+                            "<gray>" + reductionHint(1000) + " при 1000 брони.",
                             "", "<green>Нажмите и напишите число"),
-                    p -> ask(p, "<yellow>Сколько очков брони (0-30)?",
-                            text -> draft.armor = range(p, text, 0, 30, draft.armor)));
+                    p -> ask(p, "<yellow>Сколько очков брони?",
+                            text -> draft.armor = range(p, text, 0, 1_000_000, draft.armor)));
             set(31, Icons.of(Material.GOLDEN_APPLE, "<red>Здоровье",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.bonusHealth) + " ХП",
-                            "<gray>Добавляется к 20 ХП игрока,",
-                            "<gray>пока броня надета (1 сердце = 2 ХП)",
+                            "<gray>Добавляется к " + ItemFactory.num(module.plugin().health().playerBase()) + " ХП игрока, пока броня",
+                            "<gray>надета. Предела нет: сердца показывают долю.",
                             "", "<green>Нажмите и напишите число"),
-                    p -> ask(p, "<yellow>Сколько ХП добавить (0-500)?",
-                            text -> draft.bonusHealth = range(p, text, 0, 500, draft.bonusHealth)));
+                    p -> ask(p, "<yellow>Сколько ХП добавить?",
+                            text -> draft.bonusHealth = range(p, text, 0, 1_000_000, draft.bonusHealth)));
             set(33, Icons.of(Material.GLISTERING_MELON_SLICE, "<green>Регенерация",
                             "<gray>Сейчас: <white>+" + ItemFactory.num(draft.regeneration) + " ХП/сек",
                             "<gray>Лечит каждую секунду, пока броня надета.",
                             "<gray>Не работает 5 секунд после получения урона.",
                             "", "<green>Нажмите и напишите число, например <white>0.5"),
-                    p -> ask(p, "<yellow>Сколько ХП в секунду восстанавливать (0-50)?",
-                            text -> draft.regeneration = range(p, text, 0, 50, draft.regeneration)));
+                    p -> ask(p, "<yellow>Сколько ХП в секунду восстанавливать?",
+                            text -> draft.regeneration = range(p, text, 0, 1_000_000, draft.regeneration)));
         }
 
         // Нижний ряд
@@ -132,6 +133,11 @@ final class EditorMenu extends Menu {
                             confirmDelete ? "<gray>Нажмите ещё раз для подтверждения" : "<gray>Удалить шаблон"),
                     this::delete);
         }
+    }
+
+    /** «50%» — сколько урона срежет такая броня по формуле из config.yml. */
+    private String reductionHint(double armor) {
+        return Math.round(module.plugin().health().armorReduction(armor) * 100) + "%";
     }
 
     private void takeFromHand(Player player) {

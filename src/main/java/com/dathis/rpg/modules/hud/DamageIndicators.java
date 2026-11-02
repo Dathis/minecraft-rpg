@@ -51,7 +51,8 @@ final class DamageIndicators implements Listener {
         if (crit) {
             target.removeMetadata(HudModule.CRIT_METADATA, plugin);
         }
-        double damage = event.getFinalDamage();
+        // Урон по нашему ХП (после брони цели), а не сдвиг ванильных сердец
+        double damage = plugin.health().dealt(event);
         if (damage <= 0) {
             return;
         }
