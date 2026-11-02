@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Список зон одного вида: строительства или добычи. */
+/** Список зон одного вида: строительства, добычи или земель под участки. */
 final class AreaListMenu extends Menu {
 
     private static final int MAX_SHOWN = 45;
@@ -18,7 +18,7 @@ final class AreaListMenu extends Menu {
     private final Area.Kind kind;
 
     AreaListMenu(RegionModule module, Area.Kind kind) {
-        super(6, Icons.text(kind == Area.Kind.BUILD ? "<dark_gray>Зоны строительства" : "<dark_gray>Зоны добычи"));
+        super(6, Icons.text("<dark_gray>" + Area.title(kind)));
         this.module = module;
         this.kind = kind;
     }
@@ -34,6 +34,9 @@ final class AreaListMenu extends Menu {
             lore.add("<gray>Размер: <white>" + area.sizeText());
             if (kind == Area.Kind.MINING) {
                 lore.add("<gray>Правил: <white>" + area.rules.size());
+            }
+            if (kind == Area.Kind.LAND) {
+                lore.add("<gray>Участков: <white>" + module.plots().inLand(area.id).size());
             }
             lore.add("");
             lore.add("<green>Нажмите, чтобы настроить");
@@ -68,6 +71,14 @@ final class AreaListMenu extends Menu {
     }
 
     private List<String> help() {
+        if (kind == Area.Kind.LAND) {
+            return List.of("<gray>Большая территория, на которой",
+                    "<gray>игроки занимают участки по бумагам",
+                    "<gray>(малый, средний, большой).",
+                    "<gray>Вне участков земля защищена,",
+                    "<gray>как и весь мир. Высота - вся.",
+                    "<gray>Совет: стороны кратные 60.");
+        }
         if (kind == Area.Kind.BUILD) {
             return List.of("<gray>Весь мир защищён от игроков.",
                     "<gray>В зоне строительства игроки",
@@ -85,6 +96,9 @@ final class AreaListMenu extends Menu {
         if (area.kind == Area.Kind.BUILD) {
             return Material.BRICKS;
         }
+        if (area.kind == Area.Kind.LAND) {
+            return Material.GRASS_BLOCK;
+        }
         if (area.wholeWorld) {
             return Material.FILLED_MAP;
         }
@@ -99,7 +113,11 @@ final class AreaListMenu extends Menu {
             return;
         }
         int n = module.areas().all(kind).size() + 1;
-        String name = (kind == Area.Kind.BUILD ? "Зона строительства " : "Зона добычи ") + n;
+        String name = (switch (kind) {
+            case BUILD -> "Зона строительства ";
+            case MINING -> "Зона добычи ";
+            case LAND -> "Земля ";
+        }) + n;
         Area area = module.areas().create(kind, name, selection.first, selection.second);
         module.plugin().messages().send(player, "<green>Зона " + area.id + " создана.");
         new AreaMenu(module, area).open(player);

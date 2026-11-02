@@ -7,12 +7,16 @@ import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -21,7 +25,8 @@ import java.util.Set;
  *   не ставят и не открывают блоки.
  * - Зоны строительства: внутри можно всё.
  * - Зоны добычи: админ задаёт, какие блоки ломать, что ставится на их место и вернутся ли они через время.
- * Окно: /create-region.
+ * - Земли под участки: игрок с бумагой на участок занимает на земле квадрат и строит там сам.
+ * Окно: /create-region, у игроков — /plot.
  */
 public final class RegionModule extends AbstractModule {
 
@@ -31,6 +36,8 @@ public final class RegionModule extends AbstractModule {
     private AreaRegistry areas;
     private RegenManager regen;
     private BukkitTask regenTask;
+    private PlotRegistry plots;
+    private PlotDeeds deeds;
 
     private boolean protectWorld;
     private Set<String> worlds;
@@ -42,6 +49,11 @@ public final class RegionModule extends AbstractModule {
     private boolean keepLeaves;
     private boolean dropsToInventory;
     private boolean denyMessages;
+    private final Map<PlotSize, Integer> plotSides = new EnumMap<>(PlotSize.class);
+    private int maxPlotsPerPlayer;
+    private int maxPlotMembers;
+    private boolean refundDeed;
+    private boolean plotTeleport;
 
     public RegionModule() {
         super("regions", "Защита мира и зоны");
@@ -55,13 +67,23 @@ public final class RegionModule extends AbstractModule {
         regen = new RegenManager(plugin);
         regen.load();
         regenTask = plugin.getServer().getScheduler().runTaskTimer(plugin, regen, 20L, 20L);
+        plots = new PlotRegistry(plugin);
+        plots.load();
+        deeds = new PlotDeeds(this);
         listen(new ProtectionListener(this));
+        listen(new PlotListener(this));
 
         PluginCommand command = plugin.getCommand("create-region");
         if (command != null) {
             CreateRegionCommand executor = new CreateRegionCommand(this);
             command.setExecutor(executor);
             command.setTabCompleter(executor);
+        }
+        PluginCommand plot = plugin.getCommand("plot");
+        if (plot != null) {
+            PlotCommand executor = new PlotCommand(this);
+            plot.setExecutor(executor);
+            plot.setTabCompleter(executor);
         }
     }
 
@@ -78,6 +100,11 @@ public final class RegionModule extends AbstractModule {
         if (command != null) {
             command.setExecutor(null);
             command.setTabCompleter(null);
+        }
+        PluginCommand plot = plugin.getCommand("plot");
+        if (plot != null) {
+            plot.setExecutor(null);
+            plot.setTabCompleter(null);
         }
     }
 
@@ -104,6 +131,63 @@ public final class RegionModule extends AbstractModule {
         keepLeaves = c.getBoolean("regions.keep-leaves-in-mining-zones", true);
         dropsToInventory = c.getBoolean("regions.drops-to-inventory", true);
         denyMessages = c.getBoolean("regions.deny-messages", true);
+        for (PlotSize size : PlotSize.values()) {
+            plotSides.put(size, Math.max(1, Math.min(512, c.getInt(size.configKey(), size.defaultSide))));
+        }
+        maxPlotsPerPlayer = Math.max(0, c.getInt("plots.max-per-player", 0));
+        maxPlotMembers = Math.max(0, Math.min(9, c.getInt("plots.max-members", 9)));
+        refundDeed = c.getBoolean("plots.refund-deed-on-release", true);
+        plotTeleport = c.getBoolean("plots.allow-teleport", true);
+    }
+
+    /** Игрок нажал бумагой на участок (или кнопкой в /plot): открыть карту земли. */
+    void useDeed(Player player, ItemStack item) {
+        PlotDeeds.Deed deed = deeds.read(item);
+        if (deed == null) {
+            plugin.messages().send(player, "<red>Возьмите в руку бумагу на участок.</red>");
+            return;
+        }
+        Area land = areas.get(deed.land());
+        if (land == null || land.kind != Area.Kind.LAND) {
+            plugin.messages().send(player, "<red>Земли из этой бумаги больше нет. Обратитесь к администрации.</red>");
+            return;
+        }
+        PlotMapMenu map = new PlotMapMenu(this, land, deed.size(), player);
+        if (map.cells() == 0) {
+            plugin.messages().send(player, "<red>Эта земля меньше участка такого размера.</red>");
+            return;
+        }
+        map.open(player);
+    }
+
+    PlotRegistry plots() {
+        return plots;
+    }
+
+    PlotDeeds deeds() {
+        return deeds;
+    }
+
+    /** Сторона квадрата участка этого размера (config plots.size-*). */
+    int plotSide(PlotSize size) {
+        return plotSides.getOrDefault(size, size.defaultSide);
+    }
+
+    /** Сколько участков может занять один игрок, 0 — без ограничения. */
+    int maxPlotsPerPlayer() {
+        return maxPlotsPerPlayer;
+    }
+
+    int maxPlotMembers() {
+        return maxPlotMembers;
+    }
+
+    boolean refundDeed() {
+        return refundDeed;
+    }
+
+    boolean plotTeleport() {
+        return plotTeleport;
     }
 
     RpgPlugin plugin() {

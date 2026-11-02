@@ -25,18 +25,24 @@ final class RegionMainMenu extends Menu {
                         : "<gray>Включается в config.yml:",
                 module.protectWorld() ? "<gray>и не открывают блоки вне зон" : "<white>regions.protect-world: true",
                 "<gray>OP в творческом режиме строит как обычно"));
-        set(11, Icons.of(Material.BRICKS, "<green>Зоны строительства",
+        set(10, Icons.of(Material.BRICKS, "<green>Зоны строительства",
                         "<gray>Всего: <white>" + module.areas().all(Area.Kind.BUILD).size(),
                         "<gray>Внутри игроки строят, ломают",
                         "<gray>и открывают всё, что хотят"),
                 p -> new AreaListMenu(module, Area.Kind.BUILD).open(p));
-        set(13, Icons.of(Material.IRON_PICKAXE, "<gold>Зоны добычи",
+        set(12, Icons.of(Material.IRON_PICKAXE, "<gold>Зоны добычи",
                         "<gray>Всего: <white>" + module.areas().all(Area.Kind.MINING).size(),
                         "<gray>Какие блоки можно ломать, что",
                         "<gray>ставится на их место и вернутся",
                         "<gray>ли они через время"),
                 p -> new AreaListMenu(module, Area.Kind.MINING).open(p));
-        set(15, Icons.of(Material.BLAZE_ROD, "<yellow>Получить палочку выделения",
+        set(14, Icons.of(Material.GRASS_BLOCK, "<green>Земли под участки",
+                        "<gray>Всего: <white>" + module.areas().all(Area.Kind.LAND).size(),
+                        "<gray>Игроки покупают бумагу на участок",
+                        "<gray>и занимают на земле квадрат",
+                        "<gray>15x15, 30x30 или 60x60"),
+                p -> new AreaListMenu(module, Area.Kind.LAND).open(p));
+        set(16, Icons.of(Material.BLAZE_ROD, "<yellow>Получить палочку выделения",
                         "<gray>Удар по блоку — первый угол",
                         "<gray>ПКМ по блоку — второй угол"),
                 p -> {

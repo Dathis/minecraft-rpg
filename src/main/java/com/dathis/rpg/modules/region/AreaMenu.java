@@ -11,7 +11,10 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Настройка одной зоны. У зоны добычи снизу список правил и кнопки добавления блока. */
+/**
+ * Настройка одной зоны. У зоны добычи снизу список правил и кнопки добавления блока,
+ * у земли под участки — бумаги на участки и список участков.
+ */
 final class AreaMenu extends Menu {
 
     private static final int RULES_FROM = 18;
@@ -39,6 +42,11 @@ final class AreaMenu extends Menu {
         info.add("<gray>Размер: <white>" + area.sizeText());
         if (mining) {
             info.add("<gray>Ждут возврата: <white>" + module.regen().count(area) + " бл.");
+        }
+        boolean land = area.kind == Area.Kind.LAND;
+        int plots = land ? module.plots().inLand(area.id).size() : 0;
+        if (land) {
+            info.add("<gray>Участков: <white>" + plots);
         }
         set(4, Icons.of(AreaListMenu.icon(area), "<green>" + area.name, info));
 
@@ -70,6 +78,11 @@ final class AreaMenu extends Menu {
                     module.plugin().messages().send(p, "<red>Сначала выделите новую область палочкой.</red>");
                     return;
                 }
+                if (land && !module.plots().inLand(area.id).isEmpty()) {
+                    module.plugin().messages().send(p, "<red>На земле уже есть участки, её нельзя переместить."
+                            + " Создайте новую землю.</red>");
+                    return;
+                }
                 if (mining) {
                     module.regen().restoreNow(area);
                 }
@@ -91,7 +104,8 @@ final class AreaMenu extends Menu {
         }
         set(16, Icons.of(confirmDelete ? Material.TNT : Material.BARRIER,
                 confirmDelete ? "<red><bold>Точно удалить зону?" : "<red>Удалить зону",
-                confirmDelete ? "<gray>Нажмите ещё раз для подтверждения" : "<gray>Сломанные блоки сразу вернутся"), p -> {
+                confirmDelete ? "<gray>Нажмите ещё раз для подтверждения"
+                        : land ? "<gray>Участков: " + plots + ", они тоже удалятся" : "<gray>Сломанные блоки сразу вернутся"), p -> {
             if (!confirmDelete) {
                 confirmDelete = true;
                 redraw();
@@ -100,6 +114,9 @@ final class AreaMenu extends Menu {
             if (mining) {
                 module.regen().restoreNow(area);
             }
+            if (land) {
+                module.plots().deleteLand(area.id);
+            }
             module.areas().delete(area);
             module.plugin().messages().send(p, "<yellow>Зона " + area.id + " удалена.");
             new AreaListMenu(module, area.kind).open(p);
@@ -107,6 +124,9 @@ final class AreaMenu extends Menu {
 
         if (!mining) {
             set(18, Icons.of(Material.ARROW, "<gray>К списку зон"), p -> new AreaListMenu(module, area.kind).open(p));
+            if (land) {
+                renderLand(plots);
+            }
             return;
         }
 
@@ -165,6 +185,38 @@ final class AreaMenu extends Menu {
                 "<gray>ставится замена (или пусто),",
                 "<gray>а через заданное время блок",
                 "<gray>возвращается (или не возвращается)."));
+    }
+
+    /** Кнопки земли под участки: получить бумаги и список участков. */
+    private void renderLand(int plots) {
+        int slot = 20;
+        for (PlotSize size : PlotSize.values()) {
+            int side = module.plotSide(size);
+            int cells = ((area.maxX - area.minX + 1) / side) * ((area.maxZ - area.minZ + 1) / side);
+            set(slot++, Icons.of(Material.PAPER, "<gold>Бумага: " + size.title + " " + side + "x" + side,
+                    "<gray>Мест такого размера на земле: <white>" + cells,
+                    "", "<green>Нажмите, чтобы получить бумагу.",
+                    "<gray>Положите её товаром в торговлю",
+                    "<gray>NPC (/create-npc), чтобы игроки",
+                    "<gray>её покупали"), p -> {
+                for (var left : p.getInventory().addItem(module.deeds().create(area, size)).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), left);
+                }
+                module.plugin().messages().send(p, "<green>Бумага на участок (" + size.title + ") выдана.");
+            });
+        }
+        set(24, Icons.of(Material.OAK_DOOR, "<green>Участки на этой земле",
+                "<gray>Всего: <white>" + plots,
+                "<gray>Посмотреть, телепорт, удалить"), p -> new PlotListMenu(module, area, p).open(p));
+        set(26, Icons.of(Material.BOOK, "<yellow>Как это работает",
+                "<gray>1. Получите бумаги (слева) и",
+                "<gray>   продайте их через NPC-торговца.",
+                "<gray>2. Игрок берёт бумагу в руку, жмёт ПКМ",
+                "<gray>   и выбирает свободное место на карте.",
+                "<gray>3. На своём участке строит только он",
+                "<gray>   и его помощники. Высота - вся.",
+                "<gray>Места считаются от угла земли",
+                "<gray>с наименьшими X и Z."));
     }
 
     @Override

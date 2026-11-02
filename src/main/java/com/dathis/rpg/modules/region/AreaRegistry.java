@@ -13,7 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Зоны строительства и зоны добычи. Файл data/regions.yml, раздел areas. */
+/** Зоны строительства, зоны добычи и земли под участки. Файл data/regions.yml, раздел areas. */
 final class AreaRegistry {
 
     static final String FILE = "regions";
@@ -131,7 +131,11 @@ final class AreaRegistry {
     }
 
     private String nextId(Area.Kind kind) {
-        String prefix = kind == Area.Kind.BUILD ? "build" : "mine";
+        String prefix = switch (kind) {
+            case BUILD -> "build";
+            case MINING -> "mine";
+            case LAND -> "land";
+        };
         int n = 1;
         while (areas.containsKey(prefix + n)) {
             n++;

@@ -32,10 +32,15 @@ commands:
     aliases: [createquest, cq]
     permission: rpg.admin
   create-region:
-    description: Защита мира, зоны строительства и зоны добычи
-    usage: /create-region [list | wand]
+    description: Защита мира, зоны строительства, зоны добычи и земли под участки
+    usage: /create-region [list | wand | deed <земля> <small|medium|large> [игрок]]
     aliases: [createregion, regions]
     permission: rpg.admin
+  plot:
+    description: Мои участки и выбор места по бумаге на участок
+    usage: /plot [claim]
+    aliases: [plots]
+    permission: rpg.command
   quests:
     description: Журнал квестов игрока
     usage: /quests
