@@ -34,17 +34,24 @@ import java.util.List;
  *     <li>книга, зачарованная — квест выполнен;</li>
  *     <li>книга без зачарования — квест пока недоступен.</li>
  * </ul>
- * Цели: убить мобов, принести предметы, поговорить с NPC, разведать область. Сдаётся квест тому же NPC.
+ * Цели: убить мобов, принести предметы, поговорить с NPC, разведать область, добыть блоки, скрафтить предметы.
+ * Сдаётся квест тому же NPC.
+ * <p>
+ * Квест может быть повторяемым (с перезарядкой), ежедневным или еженедельным. Квесты с флагом «доска»
+ * попадают в пул доски заданий: каждый игровой день доска (блок, назначенный админом) показывает
+ * несколько случайных квестов из пула; там их берут и сдают.
  */
 public final class QuestModule extends AbstractModule {
 
-    enum Status { LOCKED, AVAILABLE, ACTIVE, READY, COMPLETED }
+    /** COOLDOWN — повторяемый квест сдан и ещё не доступен снова. */
+    enum Status { LOCKED, AVAILABLE, ACTIVE, READY, COMPLETED, COOLDOWN }
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     static final int WRAP = 36;
 
     private QuestRegistry registry;
     private QuestProgress progress;
+    private QuestClock clock;
     private NamespacedKey itemIdKey;
     private final List<BukkitTask> tasks = new ArrayList<>();
     /** Текущий квест на боковой панели. */
@@ -59,6 +66,7 @@ public final class QuestModule extends AbstractModule {
         registry = new QuestRegistry(plugin);
         registry.load();
         progress = new QuestProgress(plugin);
+        clock = new QuestClock(plugin.getConfig(), plugin.getLogger());
         itemIdKey = new NamespacedKey(plugin, "item_id");
         listen(new QuestListener(this));
         tasks.add(plugin.getServer().getScheduler().runTaskTimer(plugin, this::checkExplore, 20L, 10L));
@@ -125,6 +133,10 @@ public final class QuestModule extends AbstractModule {
         return progress;
     }
 
+    QuestClock clock() {
+        return clock;
+    }
+
     /** Модуль NPC, если включён. */
     NpcModule npcs() {
         if (!plugin.modules().isEnabled("npc")) {
@@ -145,13 +157,52 @@ public final class QuestModule extends AbstractModule {
 
     Status status(Player player, Quest quest) {
         QuestProgress.PlayerQuests data = progress.get(player.getUniqueId());
-        if (data.completed.contains(quest.id)) {
-            return Status.COMPLETED;
-        }
         if (data.active.containsKey(quest.id)) {
             return allDone(player, quest) ? Status.READY : Status.ACTIVE;
         }
+        if (data.completed.contains(quest.id)) {
+            if (!quest.repeatable() || (quest.maxRepeats > 0 && timesDone(data, quest) >= quest.maxRepeats)) {
+                return Status.COMPLETED;
+            }
+            if (System.currentTimeMillis() < availableAgain(data, quest)) {
+                return Status.COOLDOWN;
+            }
+        }
         return lockReason(player, quest) == null ? Status.AVAILABLE : Status.LOCKED;
+    }
+
+    /** Сколько раз игрок сдал квест (старые записи без счётчика — один раз). */
+    static int timesDone(QuestProgress.PlayerQuests data, Quest quest) {
+        Integer times = data.times.get(quest.id);
+        if (times != null) {
+            return times;
+        }
+        return data.completed.contains(quest.id) ? 1 : 0;
+    }
+
+    /** Когда повторяемый квест снова можно взять (мс); 0 — уже можно. */
+    long availableAgain(QuestProgress.PlayerQuests data, Quest quest) {
+        Long last = data.lastDone.get(quest.id);
+        return last == null ? 0 : clock.availableAgain(quest, last);
+    }
+
+    /** «через 3 ч 20 мин» до повторного взятия, или null, если квест не на перезарядке. */
+    String cooldownText(Player player, Quest quest) {
+        if (status(player, quest) != Status.COOLDOWN) {
+            return null;
+        }
+        long left = availableAgain(progress.get(player.getUniqueId()), quest) - System.currentTimeMillis();
+        return QuestClock.duration(left);
+    }
+
+    /** Как часто можно выполнять: «Ежедневный», «Повторяемый: раз в 2 ч». */
+    String modeText(Quest quest) {
+        return switch (quest.mode) {
+            case ONCE -> "Один раз";
+            case REPEAT -> "Повторяемый: раз в " + QuestClock.duration(quest.cooldown * 1000L);
+            case DAILY -> "Ежедневный";
+            case WEEKLY -> "Еженедельный";
+        };
     }
 
     /** Почему квест нельзя взять (MiniMessage), или null, если можно. */
@@ -225,23 +276,40 @@ public final class QuestModule extends AbstractModule {
             }
         }
         QuestProgress.PlayerQuests data = progress.get(player.getUniqueId());
+        int before = timesDone(data, quest);
         data.active.remove(quest.id);
         data.completed.add(quest.id);
+        data.lastDone.put(quest.id, System.currentTimeMillis());
+        data.times.put(quest.id, before + 1);
         progress.changed(player.getUniqueId());
+        // Повторное выполнение: награда может быть меньше (% в настройках повторения)
+        int percent = quest.repeatable() && before > 0 ? quest.repeatRewardPercent : 100;
         for (ItemStack reward : quest.rewards) {
-            player.getInventory().addItem(reward.clone()).values()
+            ItemStack give = reward.clone();
+            if (percent < 100) {
+                int amount = Math.round(reward.getAmount() * percent / 100f);
+                if (amount <= 0) {
+                    continue;
+                }
+                give.setAmount(amount);
+            }
+            player.getInventory().addItem(give).values()
                     .forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
         }
-        if (quest.rewardXp > 0) {
+        int xp = Math.round(quest.rewardXp * percent / 100f);
+        if (xp > 0) {
             if (plugin.levels().isActive()) {
-                plugin.levels().giveXp(player, quest.rewardXp, "квест");
+                plugin.levels().giveXp(player, xp, "квест");
             } else {
-                player.giveExp(quest.rewardXp);
+                player.giveExp(xp);
             }
         }
         player.showTitle(Title.title(Icons.text("<gold>Квест выполнен"), Icons.text("<yellow>" + quest.name)));
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
         plugin.messages().send(player, "<green>Квест выполнен: <gold>" + quest.name);
+        if (quest.repeatable() && status(player, quest) == Status.COOLDOWN) {
+            plugin.messages().send(player, "<gray>Снова можно взять через " + cooldownText(player, quest) + ".");
+        }
         return true;
     }
 
@@ -262,9 +330,10 @@ public final class QuestModule extends AbstractModule {
             plugin.messages().send(player, "<green>Цель выполнена: </green>" + line);
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
             if (allDone(player, quest)) {
-                NpcTemplate npc = npcs() == null ? null : npcs().npc(quest.npcId);
+                NpcTemplate npc = npcs() == null || quest.npcId == null ? null : npcs().npc(quest.npcId);
                 plugin.messages().send(player, "<gold>Квест «" + quest.name + "» можно сдать"
-                        + (npc != null ? ": вернитесь к </gold>" + npc.name() : "</gold>"));
+                        + (npc != null ? ": вернитесь к </gold>" + npc.name()
+                        : quest.board ? ": вернитесь к доске заданий</gold>" : "</gold>"));
             }
         }
     }
@@ -288,6 +357,13 @@ public final class QuestModule extends AbstractModule {
     private void sidebarLines(Player player, List<String> out) {
         List<Quest> active = activeQuests(player);
         if (active.isEmpty()) {
+            // Подсказка про доску заданий: сколько заданий дня игрок может взять
+            if (!registry.boards().isEmpty()) {
+                long available = boardToday().stream().filter(q -> status(player, q) == Status.AVAILABLE).count();
+                if (available > 0) {
+                    out.add("<gold>Доска заданий: <white>" + available);
+                }
+            }
             return;
         }
         Quest quest = active.get(0);
@@ -307,6 +383,8 @@ public final class QuestModule extends AbstractModule {
                     case BRING -> "<yellow>Принести " + target + "<yellow> " + count + "/" + objective.amount;
                     case TALK -> "<yellow>Поговорить: " + target;
                     case EXPLORE -> "<yellow>Разведать: " + target;
+                    case MINE -> "<yellow>Добыть " + target + "<yellow> " + count + "/" + objective.amount;
+                    case CRAFT -> "<yellow>Скрафтить " + target + "<yellow> " + count + "/" + objective.amount;
                 };
                 break;
             }
@@ -399,8 +477,12 @@ public final class QuestModule extends AbstractModule {
                     return "<gray>(неизвестный моб)";
                 }
             }
-            case BRING -> {
+            case BRING, CRAFT -> {
                 return objective.item == null ? "<gray>(не выбрано)" : itemName(objective.item);
+            }
+            case MINE -> {
+                Material block = objective.block();
+                return block == null ? "<gray>(не выбрано)" : "<lang:" + block.translationKey() + ">";
             }
             case TALK -> {
                 NpcModule npcs = npcs();
@@ -427,6 +509,8 @@ public final class QuestModule extends AbstractModule {
             case BRING -> color + "Добыть и принести " + objective.amount + "x " + name + color + counter;
             case TALK -> color + "Поговорить: " + name + color + (done ? " (готово)" : "");
             case EXPLORE -> color + "Разведать: " + name + color + (done ? " (готово)" : "");
+            case MINE -> color + "Добыть " + name + color + counter;
+            case CRAFT -> color + "Скрафтить " + name + color + counter;
         };
     }
 
@@ -440,11 +524,21 @@ public final class QuestModule extends AbstractModule {
             case READY -> "<green><bold>Можно сдать";
             case COMPLETED -> "<dark_green>Выполнен";
             case LOCKED -> "<red>Недоступен";
+            case COOLDOWN -> "<dark_green>Выполнен";
         });
+        if (status == Status.COOLDOWN) {
+            lore.add("<gold>Снова доступен через " + cooldownText(player, quest));
+        }
         NpcModule npcs = npcs();
         NpcTemplate npc = npcs == null || quest.npcId == null ? null : npcs.npc(quest.npcId);
         if (npc != null) {
             lore.add("<gray>Квестодатель: </gray>" + npc.name());
+        }
+        if (quest.board) {
+            lore.add("<gray>Выдаёт: <white>доска заданий");
+        }
+        if (quest.repeatable()) {
+            lore.add("<aqua>" + modeText(quest));
         }
         if (!quest.description.isEmpty()) {
             lore.add("");
@@ -457,7 +551,7 @@ public final class QuestModule extends AbstractModule {
         for (int i = 0; i < quest.objectives.size(); i++) {
             Objective objective = quest.objectives.get(i);
             int count = player == null || status == Status.AVAILABLE || status == Status.LOCKED ? 0
-                    : status == Status.COMPLETED ? objective.amount : count(player, quest, i);
+                    : status == Status.COMPLETED || status == Status.COOLDOWN ? objective.amount : count(player, quest, i);
             lore.add(objectiveText(objective, count));
         }
         if (quest.objectives.isEmpty()) {
@@ -473,15 +567,29 @@ public final class QuestModule extends AbstractModule {
                 lore.add("<white>Опыт: " + quest.rewardXp);
             }
         }
+        if (quest.repeatable() && quest.repeatRewardPercent < 100) {
+            lore.add("<gray>Повторно — награда " + quest.repeatRewardPercent + "%");
+        }
         if (quest.requiredLevel > 1) {
             lore.add("<gray>С уровня: " + quest.requiredLevel);
+        }
+        if (quest.repeatable() && player != null) {
+            int times = timesDone(progress.get(player.getUniqueId()), quest);
+            if (times > 0 || quest.maxRepeats > 0) {
+                lore.add("<gray>Выполнен раз: <white>" + times
+                        + (quest.maxRepeats > 0 ? "<gray> из " + quest.maxRepeats : ""));
+            }
+        } else if (quest.repeatable() && quest.maxRepeats > 0) {
+            lore.add("<gray>Можно выполнить раз: " + quest.maxRepeats);
         }
         if (status == Status.LOCKED && player != null) {
             lore.add("");
             lore.add(lockReason(player, quest));
         }
-        Material material = status == Status.COMPLETED || status == Status.LOCKED ? Material.BOOK : Material.WRITABLE_BOOK;
-        boolean glint = status == Status.ACTIVE || status == Status.READY || status == Status.COMPLETED;
+        Material material = status == Status.COMPLETED || status == Status.COOLDOWN || status == Status.LOCKED
+                ? Material.BOOK : Material.WRITABLE_BOOK;
+        boolean glint = status == Status.ACTIVE || status == Status.READY || status == Status.COMPLETED
+                || status == Status.COOLDOWN;
         ItemStack book = Icons.of(material, "<gold>" + quest.name, lore);
         if (glint) {
             book.editMeta(meta -> {
@@ -491,6 +599,34 @@ public final class QuestModule extends AbstractModule {
             });
         }
         return book;
+    }
+
+    // ---------- доска заданий ----------
+
+    int boardSize() {
+        return Math.max(1, Math.min(27, plugin.getConfig().getInt("quests.board.daily-count", 3)));
+    }
+
+    /** Задания доски сегодня (одинаковые для всех). */
+    List<Quest> boardToday() {
+        return registry.boardToday(clock.dayIndex(System.currentTimeMillis()), boardSize());
+    }
+
+    /** Что игрок видит на доске: задания дня и его взятые квесты с доски (их можно сдать и после смены дня). */
+    List<Quest> boardQuests(Player player) {
+        List<Quest> list = new ArrayList<>(boardToday());
+        for (Quest quest : activeQuests(player)) {
+            if (quest.board && !list.contains(quest)) {
+                list.add(quest);
+            }
+        }
+        return list;
+    }
+
+    /** Через сколько доска сменит задания: «5 ч 12 мин». */
+    String untilBoardChange() {
+        long now = System.currentTimeMillis();
+        return QuestClock.duration(clock.nextDaily(now) - now);
     }
 
     /** Список квестов NPC для админа + «Новый квест». */

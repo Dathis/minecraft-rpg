@@ -152,7 +152,8 @@ RpgPlugin (точка входа)
   `lineN` с текстом (классический способ, Geyser его передаёт). `NumberFormat.blank()` скрывает числа в Java.
   Обновление раз в `hud.sidebar.update-ticks`, команды меняются только у изменившихся строк. Если у игрока чужой
   scoreboard (не общий и не наш), панель его не трогает. Строки: уровень, ХП, мана, секции, `footer`.
-- `QuestModule.sidebarLines`: первый активный квест, первая невыполненная цель, «Можно сдать», «Ещё квестов: N».
+- `QuestModule.sidebarLines`: первый активный квест, первая невыполненная цель, «Можно сдать», «Ещё квестов: N»;
+  без активных — «Доска заданий: N» (сколько заданий дня можно взять).
 
 ## Меню игрока (`modules/menu`)
 
@@ -191,15 +192,26 @@ RpgPlugin (точка входа)
 ## Квесты (`modules/quest`)
 
 - `Quest`: название, NPC, описание (абзацы), цели `Objective` (KILL `mob:<id>`/`type:<ENTITY>`, BRING ItemStack,
-  TALK id NPC, EXPLORE область), награды (ItemStack + опыт), `requiredQuest`, `requiredLevel` (пока не проверяется).
-  `data/quests.yml`, id `quest1`.
-- `QuestProgress`: `data/quest-players.yml`, `players.<uuid>.active.<quest>` = счётчики целей, `completed` — список.
+  TALK id NPC, EXPLORE область, MINE `target` = Material блока, CRAFT ItemStack), награды (ItemStack + опыт),
+  `requiredQuest`, `requiredLevel`, повторение `mode` (ONCE / REPEAT / DAILY / WEEKLY), `cooldown` (с),
+  `repeatRewardPercent`, `maxRepeats`, флаг `board` (пул доски). `data/quests.yml`, id `quest1`; там же `boards` —
+  список блоков-досок `world;x;y;z`.
+- `QuestProgress`: `data/quest-players.yml`, `players.<uuid>.active.<quest>` = счётчики целей, `completed` — список,
+  `last.<quest>` — время последней сдачи (мс), `times.<quest>` — сколько раз сдан.
   Пишется на диск раз в 30 с, при выходе игрока и выключении. Прогресс «Принести» не хранится, считается по инвентарю.
-- `QuestModule.status`: LOCKED / AVAILABLE / ACTIVE / READY / COMPLETED → вид книги (`book`).
+- `QuestModule.status`: LOCKED / AVAILABLE / ACTIVE / READY / COMPLETED / COOLDOWN → вид книги (`book`).
+  Сданный повторяемый квест снова AVAILABLE, когда прошло `QuestClock.availableAgain(quest, last)`.
+- `QuestClock`: время сбросов из `quests.daily-reset`, `quests.weekly-reset-day`, `quests.timezone`; `dayIndex` —
+  номер игрового дня. Задания доски = `QuestRegistry.boardToday(dayIndex, count)`: пул по id, перемешанный
+  `Random(dayIndex)`, поэтому одинаковые у всех и не требуют хранения.
 - `QuestListener`: `NpcInteractEvent` (засчитывает «Поговорить», открывает `QuestBoardMenu`, если у NPC есть квесты),
-  `EntityDeathEvent` (убийства). «Разведать» проверяется задачей раз в 10 тиков.
-- Игроку: `QuestBoardMenu` (книги NPC или журнал `/quests`), `QuestViewMenu` (цели, награды, взять/сдать/отказаться).
-  Админу: `QuestMainMenu`, `QuestEditorMenu`, `ObjectiveMenu`, `RewardsMenu`.
+  `EntityDeathEvent` (убийства), `BlockBreakEvent` MONITOR (добыть; поставленные игроками блоки помнятся в памяти
+  и не засчитываются, посевы — только созревшие), `CraftItemEvent` MONITOR (shift-клик считается по разнице
+  в инвентаре через тик), `PlayerInteractEvent` LOWEST по блоку-доске (открывает доску, отменяет событие —
+  `ProtectionListener` тогда молчит). «Разведать» проверяется задачей раз в 10 тиков.
+- Игроку: `QuestBoardMenu` (Kind: NPC, BOARD, JOURNAL `/quests`, BOARD_VIEW «Задания дня»), `QuestViewMenu`
+  (цели, награды, взять/сдать/отказаться). Админу: `QuestMainMenu` (там же доски и пул), `QuestEditorMenu`,
+  `ObjectiveMenu`, `RewardsMenu`, `RepeatMenu`.
 - С модулем мобов связь через `MobModule.mobInfo/mobInfos/mobIdOf`.
 
 ## Защита мира и зоны (`modules/region`)

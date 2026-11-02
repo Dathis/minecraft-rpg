@@ -44,7 +44,7 @@ final class QuestViewMenu extends Menu {
         set(9, Icons.of(Material.TARGET, "<gold>Задание"));
         for (int i = 0; i < quest.objectives.size() && i < OBJECTIVE_SLOTS.length; i++) {
             Objective objective = quest.objectives.get(i);
-            int count = status == QuestModule.Status.COMPLETED ? objective.amount
+            int count = status == QuestModule.Status.COMPLETED || status == QuestModule.Status.COOLDOWN ? objective.amount
                     : status == QuestModule.Status.ACTIVE || status == QuestModule.Status.READY ? module.count(viewer, quest, i) : 0;
             set(OBJECTIVE_SLOTS[i], objectiveIcon(objective, count));
         }
@@ -87,12 +87,14 @@ final class QuestViewMenu extends Menu {
                     });
                 } else {
                     set(49, Icons.of(Material.CLOCK, "<green>Цели выполнены",
-                            "<gray>Вернитесь к квестодателю, чтобы сдать"));
+                            "<gray>Вернитесь к " + giver() + ", чтобы сдать"));
                 }
             }
             case ACTIVE -> set(49, Icons.of(Material.CLOCK, "<aqua>Квест выполняется",
-                    "<gray>Выполните все цели и вернитесь", "<gray>к квестодателю"));
+                    "<gray>Выполните все цели и вернитесь", "<gray>к " + giver()));
             case COMPLETED -> set(49, Icons.of(Material.BOOK, "<dark_green>Квест выполнен"));
+            case COOLDOWN -> set(49, Icons.of(Material.CLOCK, "<dark_green>Квест выполнен",
+                    "<gold>Снова доступен через " + module.cooldownText(viewer, quest)));
             case LOCKED -> set(49, Icons.of(Material.BARRIER, "<red>Недоступен",
                     module.lockReason(viewer, quest)));
         }
@@ -111,8 +113,17 @@ final class QuestViewMenu extends Menu {
         }
     }
 
+    /** Кому сдавать: «квестодателю» или «доске заданий». */
+    private String giver() {
+        return quest.npcId == null && quest.board ? "доске заданий" : "квестодателю";
+    }
+
     private ItemStack objectiveIcon(Objective objective, int count) {
-        if (objective.type == Objective.Type.BRING && objective.item != null) {
+        Material block = objective.type == Objective.Type.MINE ? objective.block() : null;
+        if (block != null && block.isItem()) {
+            return Icons.of(block, module.objectiveText(objective, count));
+        }
+        if ((objective.type == Objective.Type.BRING || objective.type == Objective.Type.CRAFT) && objective.item != null) {
             // показываем сам предмет (с его описанием), а ниже — текст цели
             ItemStack item = objective.item.clone();
             item.setAmount(1);

@@ -53,6 +53,69 @@ final class ObjectiveMenu extends Menu {
                         "<gray>Любой ванильный (не кастомный)", "", "<green>Нажмите, чтобы выбрать"), this::chooseVanillaMob);
                 amountButton(13, "Сколько убить");
             }
+            case MINE -> {
+                Material block = objective.block();
+                ItemStack icon = block != null && block.isItem()
+                        ? Icons.of(block, "<yellow>Блок: <lang:" + block.translationKey() + ">",
+                        "<aqua>Этот блок нужно добыть", "<gray>Положите другой, чтобы заменить")
+                        : Icons.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE,
+                        block != null ? "<yellow>Блок: <lang:" + block.translationKey() + ">" : "<gray>Блок: не выбран",
+                        "<green>Положите сюда блок из инвентаря",
+                        "<gray>(или shift-клик по нему)");
+                setInput(10, icon, (p, cursor) -> {
+                    if (cursor != null) {
+                        setBlock(p, cursor.getType());
+                    }
+                    redraw();
+                });
+                set(11, Icons.of(Material.SPYGLASS, "<yellow>Блок, на который я смотрю",
+                        "<gray>Посмотрите на блок, откройте", "<gray>это окно и нажмите"), p -> {
+                    var target = p.getTargetBlockExact(8);
+                    if (target == null || target.getType().isAir()) {
+                        module.plugin().messages().send(p, "<red>Вы не смотрите на блок (до 8 блоков).</red>");
+                        return;
+                    }
+                    setBlock(p, target.getType());
+                    redraw();
+                });
+                set(12, Icons.of(Material.NAME_TAG, "<yellow>Написать название",
+                        "<gray>По-английски: stone, oak_log,", "<gray>wheat, iron_ore", "", "<green>Нажмите и напишите в чат"),
+                        p -> module.plugin().chatInput().ask(p, "<yellow>Название блока по-английски (stone, oak_log):", text -> {
+                            Material m = Material.matchMaterial(text.trim().replace(' ', '_'));
+                            if (m == null) {
+                                module.plugin().messages().send(p, "<red>Нет такого блока.</red>");
+                            } else {
+                                setBlock(p, m);
+                            }
+                            open(p);
+                        }, () -> open(p)));
+                set(14, Icons.of(Material.BOOK, "<yellow>Что засчитывается",
+                        "<gray>Игрок ломает такой блок (в зоне",
+                        "<gray>добычи или где ему можно ломать).",
+                        "<gray>Посевы — только созревшие.",
+                        "<gray>Блоки, поставленные игроками,",
+                        "<gray>не засчитываются."));
+                amountButton(13, "Сколько добыть");
+            }
+            case CRAFT -> {
+                ItemStack icon = objective.item != null
+                        ? Icons.withHint(objective.item, "", "<aqua>Этот предмет нужно скрафтить",
+                        "<gray>Положите другой, чтобы заменить")
+                        : Icons.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "<gray>Предмет: не выбран",
+                        "<green>Положите сюда предмет из инвентаря",
+                        "<gray>(или shift-клик по нему)");
+                setInput(10, icon, (p, cursor) -> {
+                    if (cursor != null) {
+                        setItem(cursor);
+                    }
+                    redraw();
+                });
+                set(11, Icons.of(Material.BOOK, "<yellow>Что засчитывается",
+                        "<gray>Предмет, полученный на верстаке",
+                        "<gray>или в инвентаре. Считаются штуки:",
+                        "<gray>1 крафт досок = 4 доски."));
+                amountButton(13, "Сколько скрафтить");
+            }
             case BRING -> {
                 ItemStack icon = objective.item != null
                         ? Icons.withHint(objective.item, "", "<aqua>Этот предмет нужно принести",
@@ -117,10 +180,33 @@ final class ObjectiveMenu extends Menu {
 
     @Override
     protected void quickAdd(Player player, ItemStack item) {
-        if (objective.type == Objective.Type.BRING) {
+        if (objective.type == Objective.Type.BRING || objective.type == Objective.Type.CRAFT) {
             setItem(item);
             redraw();
+        } else if (objective.type == Objective.Type.MINE) {
+            setBlock(player, item.getType());
+            redraw();
         }
+    }
+
+    /** Блок для «Добыть». Семена и овощи превращаются в свои посевы (морковь → грядка моркови). */
+    private void setBlock(Player player, Material material) {
+        Material block = switch (material) {
+            case WHEAT_SEEDS -> Material.WHEAT;
+            case CARROT -> Material.CARROTS;
+            case POTATO -> Material.POTATOES;
+            case BEETROOT, BEETROOT_SEEDS -> Material.BEETROOTS;
+            case SWEET_BERRIES -> Material.SWEET_BERRY_BUSH;
+            case COCOA_BEANS -> Material.COCOA;
+            case PUMPKIN_SEEDS -> Material.PUMPKIN;
+            case MELON_SEEDS, MELON_SLICE -> Material.MELON;
+            default -> material;
+        };
+        if (!block.isBlock() || block.isAir() || block.name().startsWith("LEGACY_")) {
+            module.plugin().messages().send(player, "<red>Это не блок.</red>");
+            return;
+        }
+        objective.target = block.name();
     }
 
     private void setItem(ItemStack item) {

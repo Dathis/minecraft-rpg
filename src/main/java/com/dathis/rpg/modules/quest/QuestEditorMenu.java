@@ -56,8 +56,9 @@ final class QuestEditorMenu extends Menu {
         NpcModule npcs = module.npcs();
         NpcTemplate giver = npcs == null || draft.npcId == null ? null : npcs.npc(draft.npcId);
         set(11, Icons.of(Material.VILLAGER_SPAWN_EGG, "<yellow>Квестодатель",
-                        "<gray>Сейчас: " + (giver != null ? giver.name() : "<red>не выбран"),
+                        "<gray>Сейчас: " + (giver != null ? giver.name() : draft.board ? "<white>только доска" : "<red>не выбран"),
                         "<gray>У него квест берут и ему сдают",
+                        "<gray>(квесту с доски NPC не обязателен)",
                         "", "<green>Нажмите, чтобы выбрать NPC"),
                 this::chooseNpc);
 
@@ -128,13 +129,40 @@ final class QuestEditorMenu extends Menu {
         }
         if (draft.objectives.size() < Quest.MAX_OBJECTIVES) {
             set(OBJECTIVE_SLOTS[draft.objectives.size()], Icons.of(Material.LIME_STAINED_GLASS_PANE,
-                    "<green>Добавить цель", "<gray>Убить, принести, поговорить, разведать"), this::addObjective);
+                    "<green>Добавить цель", "<gray>Убить, принести, поговорить,", "<gray>разведать, добыть, скрафтить"), this::addObjective);
         }
 
         set(31, Icons.of(Material.CHEST, "<gold>Награда предметами",
                         "<gray>Предметов: <white>" + draft.rewards.size(),
                         "", "<green>Нажмите, чтобы настроить"),
                 p -> new RewardsMenu(this).open(p));
+
+        List<String> repeatLore = new ArrayList<>();
+        repeatLore.add("<gray>Сейчас: <white>" + module.modeText(draft));
+        if (draft.repeatable()) {
+            repeatLore.add("<gray>Награда за повтор: <white>" + draft.repeatRewardPercent + "%");
+            repeatLore.add("<gray>Сколько раз всего: <white>" + (draft.maxRepeats > 0 ? draft.maxRepeats : "без ограничения"));
+        }
+        repeatLore.add("");
+        repeatLore.add("<green>Нажмите, чтобы настроить");
+        set(30, Icons.of(Material.CLOCK, "<aqua>Повторение", repeatLore), p -> new RepeatMenu(this).open(p));
+
+        set(32, Icons.of(draft.board ? Material.OAK_HANGING_SIGN : Material.OAK_SIGN,
+                        "<gold>Доска заданий: " + (draft.board ? "<green>в пуле" : "<gray>нет"),
+                        "<gray>Квесты из пула доски по очереди",
+                        "<gray>появляются на досках заданий:",
+                        "<gray>каждый день " + module.boardSize() + " случайных.",
+                        "<gray>Лучше сделать квест ежедневным.",
+                        "", "<green>Нажмите, чтобы " + (draft.board ? "убрать из пула" : "добавить в пул")),
+                p -> {
+                    draft.board = !draft.board;
+                    if (draft.board && draft.mode == Quest.Mode.ONCE) {
+                        // с доски обычно берут каждый день; админ может поменять в «Повторение»
+                        draft.mode = Quest.Mode.DAILY;
+                        module.plugin().messages().send(p, "<gray>Квест стал ежедневным (можно поменять в «Повторение»).");
+                    }
+                    redraw();
+                });
 
         set(45, Icons.of(Material.ARROW, "<gray>Назад"), back::open);
         set(47, Icons.of(Material.BOOK, "<yellow>Как это работает",
@@ -159,7 +187,7 @@ final class QuestEditorMenu extends Menu {
                 + "</white> <gray>(ID: " + draft.id + ")</gray>");
         if (!draft.ready()) {
             module.plugin().messages().send(player,
-                    "<yellow>Квест пока нельзя взять: нужен квестодатель и хотя бы одна настроенная цель.");
+                    "<yellow>Квест пока нельзя взять: нужен квестодатель (или доска заданий) и хотя бы одна настроенная цель.");
         }
         redraw();
     }
@@ -216,7 +244,9 @@ final class QuestEditorMenu extends Menu {
                 {"<gray>Убить мобов: кастомных или ванильных"},
                 {"<gray>Добыть и принести предметы.", "<gray>Забираются при сдаче квеста"},
                 {"<gray>Нажать на нужного NPC"},
-                {"<gray>Прийти в область"}};
+                {"<gray>Прийти в область"},
+                {"<gray>Сломать блоки: руда, брёвна,", "<gray>созревшие посевы"},
+                {"<gray>Скрафтить предметы"}};
         for (Objective.Type type : Objective.Type.values()) {
             choices.add(new ChoiceMenu.Choice(Icons.of(type.icon, "<yellow>" + type.label, help[type.ordinal()]), p -> {
                 Objective objective = new Objective(type);
