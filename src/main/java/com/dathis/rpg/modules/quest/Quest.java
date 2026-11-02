@@ -6,12 +6,27 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /** Шаблон квеста. Он же черновик в редакторе. */
 final class Quest {
 
     static final int MAX_OBJECTIVES = 7;
     static final int MAX_REWARDS = 14;
+
+    /** Как часто квест можно выполнять. */
+    enum Mode {
+        ONCE("Один раз"),
+        REPEAT("Повторяемый"),
+        DAILY("Ежедневный"),
+        WEEKLY("Еженедельный");
+
+        final String label;
+
+        Mode(String label) {
+            this.label = label;
+        }
+    }
 
     String id;                 // null, пока не сохранён
     String name = "Новый квест";
@@ -26,8 +41,27 @@ final class Quest {
     /** С какого уровня персонажа доступен (0 и 1 — с любого). */
     int requiredLevel;
 
+    Mode mode = Mode.ONCE;
+    /** REPEAT: через сколько секунд после сдачи квест снова доступен. */
+    int cooldown = 3600;
+    /** Награда за второе и следующие выполнения, % от обычной (предметы и опыт). */
+    int repeatRewardPercent = 100;
+    /** Сколько раз всего можно выполнить повторяемый квест. 0 — без ограничения. */
+    int maxRepeats;
+    /** Квест в пуле доски заданий: доска каждый день показывает несколько случайных квестов из пула. */
+    boolean board;
+
+    boolean repeatable() {
+        return mode != Mode.ONCE;
+    }
+
+    /** Кто выдаёт: NPC или доска (квест с доски может обойтись без NPC). */
+    boolean hasGiver() {
+        return npcId != null || board;
+    }
+
     boolean ready() {
-        return npcId != null && !objectives.isEmpty() && objectives.stream().allMatch(Objective::complete);
+        return hasGiver() && !objectives.isEmpty() && objectives.stream().allMatch(Objective::complete);
     }
 
     Quest copy() {
@@ -45,6 +79,11 @@ final class Quest {
         c.rewardXp = rewardXp;
         c.requiredQuest = requiredQuest;
         c.requiredLevel = requiredLevel;
+        c.mode = mode;
+        c.cooldown = cooldown;
+        c.repeatRewardPercent = repeatRewardPercent;
+        c.maxRepeats = maxRepeats;
+        c.board = board;
         return c;
     }
 
@@ -60,6 +99,11 @@ final class Quest {
         s.set("reward-xp", rewardXp);
         s.set("required-quest", requiredQuest);
         s.set("required-level", requiredLevel);
+        s.set("mode", mode.name());
+        s.set("cooldown", cooldown);
+        s.set("repeat-reward-percent", repeatRewardPercent);
+        s.set("max-repeats", maxRepeats);
+        s.set("board", board);
     }
 
     static Quest load(String id, ConfigurationSection s) {
@@ -87,6 +131,15 @@ final class Quest {
         q.rewardXp = Math.max(0, s.getInt("reward-xp", 0));
         q.requiredQuest = s.getString("required-quest");
         q.requiredLevel = Math.max(0, s.getInt("required-level", 0));
+        try {
+            q.mode = Mode.valueOf(s.getString("mode", "ONCE").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            q.mode = Mode.ONCE;
+        }
+        q.cooldown = Math.max(60, s.getInt("cooldown", 3600));
+        q.repeatRewardPercent = Math.max(0, Math.min(100, s.getInt("repeat-reward-percent", 100)));
+        q.maxRepeats = Math.max(0, s.getInt("max-repeats", 0));
+        q.board = s.getBoolean("board", false);
         return q;
     }
 }

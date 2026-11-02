@@ -192,6 +192,9 @@ final class ProtectionListener implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
+        if (event.useInteractedBlock() == Event.Result.DENY && event.useItemInHand() == Event.Result.DENY) {
+            return; // уже отменено (например, это доска заданий) — не пишем «нельзя открывать»
+        }
         if (type.isInteractable() && !module.canUse(type)) {
             event.setUseInteractedBlock(Event.Result.DENY);
             if (block.getState() instanceof InventoryHolder) {

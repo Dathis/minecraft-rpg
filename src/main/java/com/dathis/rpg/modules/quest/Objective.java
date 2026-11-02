@@ -16,7 +16,9 @@ final class Objective {
         KILL("Убить", Material.IRON_SWORD),
         BRING("Принести", Material.CHEST),
         TALK("Поговорить", Material.VILLAGER_SPAWN_EGG),
-        EXPLORE("Разведать", Material.FILLED_MAP);
+        EXPLORE("Разведать", Material.FILLED_MAP),
+        MINE("Добыть", Material.IRON_PICKAXE),
+        CRAFT("Скрафтить", Material.CRAFTING_TABLE);
 
         final String label;
         final Material icon;
@@ -29,9 +31,9 @@ final class Objective {
 
     Type type;
     int amount = 1;
-    /** KILL: «mob:&lt;id&gt;» (кастомный моб) или «type:ZOMBIE» (ванильный). TALK: id NPC. */
+    /** KILL: «mob:&lt;id&gt;» (кастомный моб) или «type:ZOMBIE» (ванильный). TALK: id NPC. MINE: блок (STONE). */
     String target;
-    /** BRING: какой предмет принести (кастомный сравнивается по id шаблона, обычный — по материалу). */
+    /** BRING, CRAFT: какой предмет (кастомный сравнивается по id шаблона, обычный — по материалу). */
     ItemStack item;
     /** EXPLORE: область. */
     String world;
@@ -67,9 +69,16 @@ final class Objective {
     boolean complete() {
         return switch (type) {
             case KILL, TALK -> target != null;
-            case BRING -> item != null;
+            case MINE -> block() != null;
+            case BRING, CRAFT -> item != null;
             case EXPLORE -> hasArea();
         };
+    }
+
+    /** MINE: какой блок ломать, или null. */
+    Material block() {
+        Material material = target == null ? null : Material.matchMaterial(target);
+        return material != null && material.isBlock() ? material : null;
     }
 
     Objective copy() {

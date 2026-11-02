@@ -28,7 +28,7 @@ commands:
     permission: rpg.admin
   create-quest:
     description: Окно создания квестов
-    usage: /create-quest [list | wand | reset <игрок> [id]]
+    usage: /create-quest [list | wand | board | reset <игрок> [id]]
     aliases: [createquest, cq]
     permission: rpg.admin
   create-region:

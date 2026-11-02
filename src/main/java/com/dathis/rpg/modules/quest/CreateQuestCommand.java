@@ -14,6 +14,7 @@ import java.util.Locale;
  * /create-quest                       — окно квестов
  * /create-quest list                  — список квестов
  * /create-quest wand                  — палочка выделения (для «Разведать»)
+ * /create-quest board                 — сделать доской заданий блок, на который смотришь (или убрать)
  * /create-quest reset &lt;игрок&gt; [id]    — сбросить прогресс игрока (весь или одного квеста)
  */
 final class CreateQuestCommand implements TabExecutor {
@@ -51,6 +52,11 @@ final class CreateQuestCommand implements TabExecutor {
                     messages.send(sender, "<green>Палочка выделения выдана.");
                 }
             }
+            case "board" -> {
+                if (sender instanceof Player player) {
+                    messages.send(sender, QuestMainMenu.toggleBoard(module, player));
+                }
+            }
             case "reset" -> {
                 Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : null;
                 if (target == null) {
@@ -59,16 +65,14 @@ final class CreateQuestCommand implements TabExecutor {
                 }
                 QuestProgress.PlayerQuests data = module.progress().get(target.getUniqueId());
                 if (args.length >= 3) {
-                    data.active.remove(args[2]);
-                    data.completed.remove(args[2]);
+                    data.forget(args[2]);
                 } else {
-                    data.active.clear();
-                    data.completed.clear();
+                    data.clear();
                 }
                 module.progress().changed(target.getUniqueId());
                 messages.send(sender, "<green>Прогресс квестов игрока " + target.getName() + " сброшен.");
             }
-            default -> messages.send(sender, "<red>Использование: /" + label + " [list | wand | reset <игрок> [id]]</red>");
+            default -> messages.send(sender, "<red>Использование: /" + label + " [list | wand | board | reset <игрок> [id]]</red>");
         }
         return true;
     }
@@ -77,7 +81,7 @@ final class CreateQuestCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return filter(List.of("list", "wand", "reset"), args[0]);
+            return filter(List.of("list", "wand", "board", "reset"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("reset")) {
             return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);

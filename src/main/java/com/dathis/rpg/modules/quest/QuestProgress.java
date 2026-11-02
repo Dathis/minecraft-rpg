@@ -26,6 +26,25 @@ final class QuestProgress {
         /** id квеста → прогресс по каждой цели (для «Принести» не используется: считается по инвентарю). */
         final Map<String, int[]> active = new LinkedHashMap<>();
         final Set<String> completed = new LinkedHashSet<>();
+        /** id квеста → когда сдан последний раз (мс). Для повторяемых квестов. */
+        final Map<String, Long> lastDone = new HashMap<>();
+        /** id квеста → сколько раз сдан. */
+        final Map<String, Integer> times = new HashMap<>();
+
+        /** Забыть квест полностью (сброс админом). */
+        void forget(String questId) {
+            active.remove(questId);
+            completed.remove(questId);
+            lastDone.remove(questId);
+            times.remove(questId);
+        }
+
+        void clear() {
+            active.clear();
+            completed.clear();
+            lastDone.clear();
+            times.clear();
+        }
     }
 
     private final RpgPlugin plugin;
@@ -73,6 +92,18 @@ final class QuestProgress {
                 data.active.put(questId, list.stream().mapToInt(Integer::intValue).toArray());
             }
         }
+        ConfigurationSection last = s.getConfigurationSection("last");
+        if (last != null) {
+            for (String questId : last.getKeys(false)) {
+                data.lastDone.put(questId, last.getLong(questId));
+            }
+        }
+        ConfigurationSection times = s.getConfigurationSection("times");
+        if (times != null) {
+            for (String questId : times.getKeys(false)) {
+                data.times.put(questId, times.getInt(questId));
+            }
+        }
         return data;
     }
 
@@ -84,6 +115,8 @@ final class QuestProgress {
         for (Map.Entry<String, int[]> entry : data.active.entrySet()) {
             yaml.set(path + ".active." + entry.getKey(), java.util.Arrays.stream(entry.getValue()).boxed().toList());
         }
+        data.lastDone.forEach((questId, time) -> yaml.set(path + ".last." + questId, time));
+        data.times.forEach((questId, count) -> yaml.set(path + ".times." + questId, count));
     }
 
     void flush() {

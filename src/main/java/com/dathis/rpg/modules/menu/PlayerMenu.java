@@ -38,7 +38,7 @@ final class PlayerMenu extends Menu {
                 p -> new StatsMenu(module, p, true).open(p)));
         if (module.plugin().modules().isEnabled("quests")) {
             buttons.add(new Button(Icons.of(Material.WRITABLE_BOOK, "<yellow>Квесты",
-                    "<gray>Журнал взятых и выполненных квестов"),
+                    "<gray>Журнал взятых и выполненных квестов,", "<gray>задания дня на доске"),
                     p -> p.performCommand("quests")));
         }
         if (module.plugin().modules().isEnabled("regions")) {
