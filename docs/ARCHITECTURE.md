@@ -140,12 +140,21 @@ RpgPlugin (точка входа)
 - `RegenManager`: очередь возврата (позиция → время, BlockData строкой) в разделе `regen` того же файла, задача раз
   в секунду, на диск не чаще раза в 10 с и при выключении. Ждёт, пока чанк загружен; поднимает сущности из блока.
 - Листва в MINING-зонах не осыпается (`LeavesDecayEvent`).
+- Участки: `Area.Kind.LAND` (id `land1`, Y всегда от `minHeight` до `maxHeight-1`) — земля под участки.
+  `Plot` — квадрат X/Z на всю высоту с владельцем и помощниками, `PlotRegistry` хранит их в `data/plots.yml`
+  (`plotAt`, `overlapping`). `PlotSize` SMALL/MEDIUM/LARGE, сторона из `plots.size-*`.
+  `PlotDeeds`: бумага (PAPER) с PDC `plot_deed_land` + `plot_deed_size`, остальное берётся вживую.
+  `PlotListener` (ПКМ бумагой) → `RegionModule.useDeed` → `PlotMapMenu`: сетка мест с шагом в сторону участка от
+  min-угла земли, 9x5 клеток на экран со сдвигом, занятые — пересечение с любым участком. `PlotClaimMenu` ещё раз
+  проверяет место, лимит, забирает бумагу и создаёт участок. `/plot` → `PlotListMenu` / `PlotMenu`.
+- В `ProtectionListener` участок важнее всего: `restricted` на участке = «не владелец и не помощник» (независимо
+  от `protect-world`), `worldProtected` (взрывы, огонь, мобы) всегда true на участке, правила добычи там не действуют.
 
 ## Хранение
 
 `plugins/MinecraftRPG/`:
 - `config.yml` настройки (новые ключи читаются с дефолтами, старые конфиги не ломаются);
-- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`, `data/regions.yml`.
+- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`, `data/regions.yml`, `data/plots.yml`.
 
 ## Совместимость с Bedrock
 

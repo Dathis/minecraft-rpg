@@ -15,11 +15,13 @@ import java.util.Map;
  * Область мира, выделенная палочкой.
  * BUILD — зона строительства: внутри игроки строят, ломают и открывают всё, как в обычном Minecraft.
  * MINING — зона добычи: ломать можно только блоки из правил, остальное защищено.
+ * LAND — земля под участки: защищена как весь мир, но игроки с бумагой на участок занимают
+ *        на ней квадраты (см. {@link Plot}). Высота земли — всегда вся высота мира.
  */
 final class Area {
 
     enum Kind {
-        BUILD, MINING
+        BUILD, MINING, LAND
     }
 
     final String id;
@@ -52,6 +54,19 @@ final class Area {
         maxX = Math.max(a.getBlockX(), b.getBlockX());
         maxY = Math.max(a.getBlockY(), b.getBlockY());
         maxZ = Math.max(a.getBlockZ(), b.getBlockZ());
+        if (kind == Kind.LAND) {
+            minY = a.getWorld().getMinHeight();
+            maxY = a.getWorld().getMaxHeight() - 1;
+        }
+    }
+
+    /** «Зоны строительства», «Зоны добычи», «Земли под участки». */
+    static String title(Kind kind) {
+        return switch (kind) {
+            case BUILD -> "Зоны строительства";
+            case MINING -> "Зоны добычи";
+            case LAND -> "Земли под участки";
+        };
     }
 
     boolean contains(Block block) {
@@ -83,7 +98,13 @@ final class Area {
     }
 
     String sizeText() {
-        return wholeWorld ? "весь мир" : (maxX - minX + 1) + "x" + (maxY - minY + 1) + "x" + (maxZ - minZ + 1);
+        if (wholeWorld) {
+            return "весь мир";
+        }
+        if (kind == Kind.LAND) {
+            return (maxX - minX + 1) + "x" + (maxZ - minZ + 1) + ", вся высота";
+        }
+        return (maxX - minX + 1) + "x" + (maxY - minY + 1) + "x" + (maxZ - minZ + 1);
     }
 
     String coordsText() {

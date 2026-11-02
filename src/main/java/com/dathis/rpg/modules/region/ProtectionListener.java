@@ -55,7 +55,8 @@ import java.util.UUID;
  * Защита мира. Игроки без права rpg.region.bypass (по умолчанию — все, кроме OP) не ломают, не ставят
  * и не открывают блоки. Исключения:
  * - зона строительства: внутри всё как в обычном Minecraft;
- * - зона добычи: блоки из правил ломаются, добыча идёт в инвентарь, на месте ставится замена, блок может вернуться.
+ * - зона добычи: блоки из правил ломаются, добыча идёт в инвентарь, на месте ставится замена, блок может вернуться;
+ * - участок игрока: строят только владелец и помощники, остальным нельзя ничего (даже если защита мира выключена).
  */
 final class ProtectionListener implements Listener {
 
@@ -72,6 +73,14 @@ final class ProtectionListener implements Listener {
     public void onBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
+        Plot plot = module.plots().plotAt(block);
+        if (plot != null) {
+            if (!plot.canBuild(player) && !player.hasPermission(RegionModule.BYPASS)) {
+                event.setCancelled(true);
+                deny(player, "Это участок игрока " + plot.ownerName);
+            }
+            return;
+        }
         if (module.areas().inBuildZone(block)) {
             return;
         }
@@ -95,7 +104,8 @@ final class ProtectionListener implements Listener {
         }
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        if (module.areas().inBuildZone(block) || miningRule(player, block, event.getBlockState().getType()) == null) {
+        if (module.areas().inBuildZone(block) || module.plots().plotAt(block) != null
+                || miningRule(player, block, event.getBlockState().getType()) == null) {
             return;
         }
         for (Item item : event.getItems()) {
@@ -203,8 +213,7 @@ final class ProtectionListener implements Listener {
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         Player player = playerOf(event.getRemover());
         Block block = event.getEntity().getLocation().getBlock();
-        if (player != null ? restricted(player, block)
-                : module.protects(block.getWorld()) && !module.areas().inBuildZone(block)) {
+        if (player != null ? restricted(player, block) : worldProtected(block)) {
             event.setCancelled(true);
         }
     }
@@ -215,7 +224,7 @@ final class ProtectionListener implements Listener {
             return;
         }
         Block block = event.getEntity().getLocation().getBlock();
-        if (module.blockExplosions() && module.protects(block.getWorld()) && !module.areas().inBuildZone(block)) {
+        if (module.blockExplosions() && worldProtected(block)) {
             event.setCancelled(true);
         }
     }
@@ -333,13 +342,26 @@ final class ProtectionListener implements Listener {
 
     // ---------- Общее ----------
 
-    /** Запрещено ли игроку менять этот блок. */
+    /** Запрещено ли игроку менять этот блок. На участке решает только то, владелец ли он (или помощник). */
     private boolean restricted(Player player, Block block) {
-        return !player.hasPermission(RegionModule.BYPASS) && worldProtected(block);
+        if (player.hasPermission(RegionModule.BYPASS)) {
+            return false;
+        }
+        Plot plot = module.plots().plotAt(block);
+        if (plot != null) {
+            return !plot.canBuild(player);
+        }
+        return worldProtected(block);
     }
 
-    /** Блок под защитой: мир защищён и блок не в зоне строительства. */
+    /**
+     * Блок под защитой от взрывов, огня и мобов: он на чьём-то участке
+     * или мир защищён и блок не в зоне строительства.
+     */
     private boolean worldProtected(Block block) {
+        if (module.plots().plotAt(block) != null) {
+            return true;
+        }
         return module.protects(block.getWorld()) && !module.areas().inBuildZone(block);
     }
 
