@@ -129,7 +129,11 @@ final class ProtectionListener implements Listener {
         Block block = event.getBlock();
         BlockData original = block.getBlockData().clone();
         if (module.dropsToInventory() && event.getExpToDrop() > 0) {
-            player.giveExp(event.getExpToDrop(), true);
+            // Полоска опыта занята уровнем персонажа (модуль levels) — ванильный опыт не даём
+            if (!module.plugin().levels().isActive()
+                    || !module.plugin().getConfig().getBoolean("levels.use-xp-bar", true)) {
+                player.giveExp(event.getExpToDrop(), true);
+            }
             event.setExpToDrop(0);
         }
         Material replacement = rule.replacement;

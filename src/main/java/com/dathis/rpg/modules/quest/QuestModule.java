@@ -160,7 +160,9 @@ public final class QuestModule extends AbstractModule {
                 return "<red>Сначала выполните: <white>" + required.name;
             }
         }
-        // TODO: уровень игрока (quest.requiredLevel), когда появятся уровни
+        if (!plugin.levels().meets(player, quest.requiredLevel)) {
+            return "<red>Нужен уровень: <white>" + quest.requiredLevel;
+        }
         return null;
     }
 
@@ -226,7 +228,11 @@ public final class QuestModule extends AbstractModule {
                     .forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
         }
         if (quest.rewardXp > 0) {
-            player.giveExp(quest.rewardXp);
+            if (plugin.levels().isActive()) {
+                plugin.levels().giveXp(player, quest.rewardXp, "квест");
+            } else {
+                player.giveExp(quest.rewardXp);
+            }
         }
         player.showTitle(Title.title(Icons.text("<gold>Квест выполнен"), Icons.text("<yellow>" + quest.name)));
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
@@ -426,8 +432,8 @@ public final class QuestModule extends AbstractModule {
                 lore.add("<white>Опыт: " + quest.rewardXp);
             }
         }
-        if (quest.requiredLevel > 0) {
-            lore.add("<gray>Уровень: " + quest.requiredLevel);
+        if (quest.requiredLevel > 1) {
+            lore.add("<gray>С уровня: " + quest.requiredLevel);
         }
         if (status == Status.LOCKED && player != null) {
             lore.add("");

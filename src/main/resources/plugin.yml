@@ -41,6 +41,11 @@ commands:
     usage: /plot [claim]
     aliases: [plots]
     permission: rpg.command
+  level:
+    description: Уровень и опыт персонажа (админу — изменить уровень игрока)
+    usage: /level [игрок | set <игрок> <уровень> | give <игрок> <опыт> | reset <игрок>]
+    aliases: [lvl, lv]
+    permission: rpg.command
   quests:
     description: Журнал квестов игрока
     usage: /quests

@@ -84,21 +84,24 @@ final class QuestEditorMenu extends Menu {
                         "", "<green>Нажмите, чтобы выбрать"),
                 this::chooseRequired);
         set(15, Icons.of(Material.LADDER, "<yellow>С какого уровня",
-                        "<gray>Сейчас: <white>" + (draft.requiredLevel > 0 ? draft.requiredLevel : "любой"),
-                        "<gray>Пока только запоминается:",
-                        "<gray>уровни игроков появятся позже",
+                        "<gray>Сейчас: <white>" + (draft.requiredLevel > 1 ? draft.requiredLevel : "любой"),
+                        "<gray>Игрок ниже этого уровня",
+                        "<gray>не сможет взять квест",
                         "", "<green>Нажмите и напишите число"),
-                p -> ask(p, "<yellow>С какого уровня доступен квест? (0 — с любого)", text -> {
+                p -> ask(p, "<yellow>С какого уровня доступен квест? (1-" + module.plugin().levels().maxLevel() + ", 1 — с любого)", text -> {
                     OptionalDouble value = Numbers.parse(text);
-                    if (value.isPresent() && value.getAsDouble() >= 0 && value.getAsDouble() <= 1000) {
+                    int max = module.plugin().levels().maxLevel();
+                    if (value.isPresent() && value.getAsDouble() >= 0 && value.getAsDouble() <= max) {
                         draft.requiredLevel = (int) value.getAsDouble();
                     } else {
-                        module.plugin().messages().send(p, "<red>Нужно число от 0 до 1000.</red>");
+                        module.plugin().messages().send(p, "<red>Нужно число от 1 до " + max + ".</red>");
                     }
                 }));
         set(16, Icons.of(Material.EXPERIENCE_BOTTLE, "<green>Награда опытом",
-                        "<gray>Сейчас: <white>" + draft.rewardXp + " ед. опыта",
-                        "<gray>(не уровней; 7 ед. = первый уровень)",
+                        "<gray>Сейчас: <white>" + draft.rewardXp + " опыта",
+                        "<gray>Опыт персонажа. До 2-го уровня",
+                        "<gray>нужно " + module.plugin().levels().xpToNext(1) + ", до 10-го всего "
+                                + module.plugin().levels().totalXpFor(Math.min(10, module.plugin().levels().maxLevel())),
                         "", "<green>Нажмите и напишите число"),
                 p -> ask(p, "<yellow>Сколько опыта дать за квест? (0 — нисколько)", text -> {
                     OptionalDouble value = Numbers.parse(text);

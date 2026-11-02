@@ -7,12 +7,14 @@ import com.dathis.rpg.core.gui.MenuListener;
 import com.dathis.rpg.core.input.ChatInput;
 import com.dathis.rpg.core.module.ModuleManager;
 import com.dathis.rpg.core.platform.PlatformService;
+import com.dathis.rpg.core.progression.LevelService;
 import com.dathis.rpg.core.selection.SelectionWand;
 import com.dathis.rpg.core.storage.YamlStore;
 import com.dathis.rpg.modules.dialog.DialogModule;
 import com.dathis.rpg.modules.health.HealthModule;
 import com.dathis.rpg.modules.hud.HudModule;
 import com.dathis.rpg.modules.item.ItemModule;
+import com.dathis.rpg.modules.level.LevelModule;
 import com.dathis.rpg.modules.mob.MobModule;
 import com.dathis.rpg.modules.npc.NpcModule;
 import com.dathis.rpg.modules.quest.QuestModule;
@@ -35,6 +37,7 @@ public final class RpgPlugin extends JavaPlugin {
     private ChatInput chatInput;
     private SelectionWand selectionWand;
     private HealthService health;
+    private LevelService levels;
 
     @Override
     public void onEnable() {
@@ -48,6 +51,7 @@ public final class RpgPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(chatInput, this);
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         health = new HealthService(this);
+        levels = new LevelService(this);
         selectionWand = new SelectionWand(this);
         getServer().getPluginManager().registerEvents(selectionWand, this);
         getServer().getScheduler().runTaskTimer(this, selectionWand, 10L, 10L);
@@ -61,6 +65,7 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new MobModule());
         modules.register(new ItemModule());
         modules.register(new HudModule());
+        modules.register(new LevelModule());
         // Последним: к его включению предметы и мобы уже отдали свои статы (броня, ХП шаблонов)
         modules.register(new HealthModule());
         modules.enableAll();
@@ -124,6 +129,11 @@ public final class RpgPlugin extends JavaPlugin {
     /** Своё ХП и броня. Пока модуль health выключен, отвечает ванильными значениями. */
     public HealthService health() {
         return health;
+    }
+
+    /** Уровни и опыт персонажа. Пока модуль levels выключен, требования к уровню не проверяются. */
+    public LevelService levels() {
+        return levels;
     }
 
     public ModuleManager modules() {

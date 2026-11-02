@@ -129,6 +129,41 @@ final class MobEditorMenu extends Menu {
             set(33, Icons.of(Material.GRAY_DYE, "<gray>Зоны спавна",
                     "<gray>Сначала сохраните моба"));
         }
+        set(32, Icons.of(Material.EXPERIENCE_BOTTLE, "<gold>Уровень",
+                        "<gray>Сейчас: <white>" + draft.level,
+                        "<gray>Видно в названии: <white>[" + draft.level + "] " + draft.name,
+                        "<gray>Если моб на " + module.plugin().levels().penaltyDifference() + "+ уровней выше",
+                        "<gray>или ниже игрока, опыта за него",
+                        "<gray>только " + Numbers.format(module.plugin().levels().penaltyPercent()) + "%.",
+                        "", "<green>Нажмите и напишите число"),
+                p -> ask(p, "<yellow>Введите уровень моба (1-" + module.plugin().levels().maxLevel() + "):", text -> {
+                    OptionalDouble value = Numbers.parse(text);
+                    int max = module.plugin().levels().maxLevel();
+                    if (value.isPresent() && value.getAsDouble() >= 1 && value.getAsDouble() <= max) {
+                        draft.level = (int) value.getAsDouble();
+                    } else {
+                        module.plugin().messages().send(p, "<red>Нужно число от 1 до " + max + ".</red>");
+                    }
+                }));
+        set(34, Icons.of(Material.LAPIS_LAZULI, "<gold>Опыт за убийство",
+                        "<gray>Сейчас: <white>" + module.xpFor(draft)
+                                + (draft.xp < 0 ? " <gray>(авто)" : " <gray>(свой)"),
+                        "<gray>Авто: зависит от уровня и ранга",
+                        "<gray>(" + module.autoXp(draft.level, draft.tier) + " для этого моба)",
+                        "", "<green>Нажмите и напишите число",
+                        "<gray>или <white>авто</white>, чтобы считать само"),
+                p -> ask(p, "<yellow>Сколько опыта даёт моб? Число или <white>авто</white>:", text -> {
+                    if (text.trim().equalsIgnoreCase("авто") || text.trim().equalsIgnoreCase("auto")) {
+                        draft.xp = -1;
+                        return;
+                    }
+                    OptionalDouble value = Numbers.parse(text);
+                    if (value.isPresent() && value.getAsDouble() >= 0 && value.getAsDouble() <= 1_000_000_000) {
+                        draft.xp = (long) value.getAsDouble();
+                    } else {
+                        module.plugin().messages().send(p, "<red>Нужно число от 0 или слово авто.</red>");
+                    }
+                }));
         set(25, Icons.of(draft.vanillaDrops ? Material.ROTTEN_FLESH : Material.BARRIER,
                         "<yellow>Ванильный лут: " + (draft.vanillaDrops ? "<green>включён" : "<red>выключен"),
                         "<gray>Падает ли обычный лут этого моба",
@@ -160,6 +195,8 @@ final class MobEditorMenu extends Menu {
         module.registry().save(draft);
         if (isNew) {
             module.giveEgg(player, draft.id, 1);
+        } else {
+            module.refreshNames(draft);
         }
         module.plugin().messages().send(player, "<green>Моб сохранён: <white>" + draft.name
                 + "</white> <gray>(ID: " + draft.id + ")</gray>");

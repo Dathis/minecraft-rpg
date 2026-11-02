@@ -3,6 +3,7 @@ package com.dathis.rpg.modules.mob;
 import com.dathis.rpg.RpgPlugin;
 import com.dathis.rpg.core.combat.HealthService;
 import com.dathis.rpg.core.input.Numbers;
+import com.dathis.rpg.core.progression.LevelService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -49,6 +50,11 @@ public final class MobModule extends AbstractModule {
         CustomMob mob = registry == null ? null : registry.of(entity);
         return mob == null ? null : new HealthService.Bonus(Math.max(1, mob.health), mob.armor);
     };
+    /** Уровень и опыт моба из шаблона для LevelService. */
+    private final LevelService.MobSource levels = entity -> {
+        CustomMob mob = registry == null ? null : registry.of(entity);
+        return mob == null ? null : new LevelService.MobLevel(mob.level, xpFor(mob));
+    };
     private final List<BukkitTask> tasks = new ArrayList<>();
 
     public MobModule() {
@@ -61,6 +67,7 @@ public final class MobModule extends AbstractModule {
         registry.load();
         listen(new MobListener(this));
         plugin.health().addProvider(stats);
+        plugin.levels().addSource(levels);
         brain = new MobBrain(this);
         listen(brain);
         brain.start();
@@ -87,6 +94,7 @@ public final class MobModule extends AbstractModule {
         tasks.forEach(BukkitTask::cancel);
         tasks.clear();
         plugin.health().removeProvider(stats);
+        plugin.levels().removeSource(levels);
         if (brain != null) {
             brain.stop();
         }
@@ -119,6 +127,39 @@ public final class MobModule extends AbstractModule {
     public String mobIdOf(Entity entity) {
         CustomMob mob = registry.of(entity);
         return mob == null ? null : mob.id;
+    }
+
+    /**
+     * Опыт за убийство моба (до штрафа за разницу уровней). Свой у шаблона или автоматический:
+     * levels.mob-xp-per-level × уровень × множитель ранга (levels.tier-xp-multiplier.*).
+     */
+    long xpFor(CustomMob mob) {
+        if (mob.xp >= 0) {
+            return mob.xp;
+        }
+        return autoXp(mob.level, mob.tier);
+    }
+
+    long autoXp(int level, CustomMob.Tier tier) {
+        double perLevel = Math.max(0, plugin.getConfig().getDouble("levels.mob-xp-per-level", 10));
+        double multiplier = switch (tier) {
+            case NORMAL -> 1;
+            case ELITE -> plugin.getConfig().getDouble("levels.tier-xp-multiplier.elite", 3);
+            case BOSS -> plugin.getConfig().getDouble("levels.tier-xp-multiplier.boss", 10);
+        };
+        return Math.max(0, Math.round(perLevel * Math.max(1, level) * Math.max(0, multiplier)));
+    }
+
+    /** Обновить название у уже призванных мобов этого шаблона (уровень, ранг, имя). */
+    void refreshNames(CustomMob mob) {
+        for (org.bukkit.World world : plugin.getServer().getWorlds()) {
+            for (LivingEntity entity : world.getLivingEntities()) {
+                CustomMob template = registry.of(entity);
+                if (template != null && template.id.equals(mob.id)) {
+                    entity.customName(template.displayName());
+                }
+            }
+        }
     }
 
     RpgPlugin plugin() {
@@ -195,8 +236,9 @@ public final class MobModule extends AbstractModule {
         return stack;
     }
 
-    static List<Component> summary(CustomMob mob) {
+    List<Component> summary(CustomMob mob) {
         List<Component> lines = new ArrayList<>();
+        lines.add(line("Уровень: " + mob.level + "   Опыт: " + xpFor(mob), NamedTextColor.GOLD));
         lines.add(line("Ранг: " + mob.tier.label, NamedTextColor.GRAY));
         lines.add(line("ХП: " + Numbers.format(mob.health), NamedTextColor.GREEN));
         if (mob.armor > 0) {

@@ -44,6 +44,10 @@ public final class CustomMob {
     double damageMin = 3;
     double damageMax = 5;
     boolean vanillaDrops;    // оставлять ли обычный лут моба
+    /** Уровень моба (1..levels.max-level). От него зависит опыт и штраф за разницу уровней. */
+    int level = 1;
+    /** Опыт за убийство. -1 — считать автоматически по уровню и рангу (см. MobModule.xpFor). */
+    long xp = -1;
     /** Враждебный — сам нападает на игрока, которого видит. Иначе только в ответ на удар. */
     boolean hostile;
     List<MobDrop> drops = new ArrayList<>();
@@ -65,11 +69,14 @@ public final class CustomMob {
     /** Название с цветом ранга: обычный — белое, элитный — красное, босс — красное жирное. */
     Component displayName() {
         Component text = Component.text(name).decoration(TextDecoration.ITALIC, false);
-        return switch (tier) {
+        text = switch (tier) {
             case NORMAL -> text.color(NamedTextColor.WHITE);
             case ELITE -> text.color(NamedTextColor.RED);
             case BOSS -> text.color(NamedTextColor.RED).decoration(TextDecoration.BOLD, true);
         };
+        // Уровень перед названием: «[5] Разбойник»
+        return Component.text("[" + level + "] ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+                .decoration(TextDecoration.BOLD, false).append(text);
     }
 
     CustomMob copy() {
@@ -81,6 +88,8 @@ public final class CustomMob {
         c.damageMin = damageMin;
         c.damageMax = damageMax;
         c.vanillaDrops = vanillaDrops;
+        c.level = level;
+        c.xp = xp;
         c.hostile = hostile;
         c.drops = new ArrayList<>();
         for (MobDrop drop : drops) {
@@ -100,6 +109,8 @@ public final class CustomMob {
         s.set("damage-min", damageMin);
         s.set("damage-max", damageMax);
         s.set("vanilla-drops", vanillaDrops);
+        s.set("level", level);
+        s.set("xp", xp);
         s.set("hostile", hostile);
         List<Map<String, Object>> list = new ArrayList<>();
         for (MobDrop drop : drops) {
@@ -129,6 +140,8 @@ public final class CustomMob {
         mob.damageMin = s.getDouble("damage-min", 3);
         mob.damageMax = s.getDouble("damage-max", 5);
         mob.vanillaDrops = s.getBoolean("vanilla-drops", false);
+        mob.level = Math.max(1, s.getInt("level", 1));
+        mob.xp = s.getLong("xp", -1);
         mob.hostile = s.getBoolean("hostile", defaultHostile(type));
         for (Map<?, ?> raw : s.getMapList("drops")) {
             MobDrop drop = MobDrop.deserialize(raw);

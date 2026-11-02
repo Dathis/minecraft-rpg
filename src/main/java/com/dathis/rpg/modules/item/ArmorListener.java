@@ -31,6 +31,8 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
     private final ItemModule module;
     private final Map<UUID, Stats> worn = new HashMap<>();
     private final Map<UUID, Long> lastDamage = new HashMap<>();
+    /** Сколько надетых вещей не подходит по уровню (чтобы предупреждать только при изменении). */
+    private final Map<UUID, Integer> tooHigh = new HashMap<>();
 
     ArmorListener(ItemModule module) {
         this.module = module;
@@ -62,13 +64,26 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
 
     private Stats collect(Player player) {
         double armor = 0, health = 0, regen = 0;
+        int locked = 0;
+        CustomItem lockedItem = null;
         for (ItemStack piece : player.getInventory().getArmorContents()) {
             CustomItem item = module.registry().of(piece);
             if (item != null && item.isArmor()) {
+                if (!module.plugin().levels().meets(player, item.level)) {
+                    // Не дорос — броня надета, но статов не даёт
+                    locked++;
+                    lockedItem = item;
+                    continue;
+                }
                 armor += item.armor;
                 health += item.bonusHealth;
                 regen += item.regeneration;
             }
+        }
+        Integer before = tooHigh.put(player.getUniqueId(), locked);
+        if (lockedItem != null && locked > (before == null ? 0 : before)) {
+            module.plugin().messages().send(player, "<red>«" + net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().escapeTags(lockedItem.name) + "» требует уровень "
+                    + lockedItem.level + ": пока она ничего не даёт.</red>");
         }
         return health == 0 && armor == 0 && regen == 0 ? Stats.ZERO : new Stats(armor, health, regen);
     }
@@ -98,10 +113,12 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
     public void onQuit(PlayerQuitEvent event) {
         worn.remove(event.getPlayer().getUniqueId());
         lastDamage.remove(event.getPlayer().getUniqueId());
+        tooHigh.remove(event.getPlayer().getUniqueId());
     }
 
     void clear() {
         worn.clear();
         lastDamage.clear();
+        tooHigh.clear();
     }
 }
