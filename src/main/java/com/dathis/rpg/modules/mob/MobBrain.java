@@ -83,9 +83,12 @@ final class MobBrain implements Listener, Runnable {
     }
 
     private void track(Mob mob) {
-        if (!mob.isValid() || module.registry().of(mob) == null) {
+        CustomMob template = mob.isValid() ? module.registry().of(mob) : null;
+        if (template == null) {
             return;
         }
+        // Название по текущему шаблону (уровень и ранг могли поменяться, пока чанк был выгружен)
+        mob.customName(template.displayName());
         if (home(mob) == null) {
             setHome(mob, mob.getLocation());
         }

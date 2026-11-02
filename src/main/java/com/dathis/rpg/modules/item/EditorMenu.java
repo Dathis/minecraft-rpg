@@ -74,6 +74,16 @@ final class EditorMenu extends Menu {
             redraw();
         });
 
+        set(25, Icons.of(Material.EXPERIENCE_BOTTLE, "<gold>Уровень предмета",
+                        "<gray>Сейчас: <white>" + (draft.level > 1 ? draft.level : "любой"),
+                        "<gray>С какого уровня персонажа оружие",
+                        "<gray>бьёт в полную силу, а броня даёт статы.",
+                        "<gray>Ниже уровнем: оружие бьёт как рука,",
+                        "<gray>броня ничего не даёт.",
+                        "", "<green>Нажмите и напишите число"),
+                p -> ask(p, "<yellow>С какого уровня предмет? (1-" + module.plugin().levels().maxLevel() + ", 1 — с любого)",
+                        text -> draft.level = (int) range(p, text, 1, module.plugin().levels().maxLevel(), draft.level)));
+
         // Свойства оружия
         if (draft.isWeapon()) {
             set(29, Icons.of(Material.IRON_SWORD, "<red>Урон",

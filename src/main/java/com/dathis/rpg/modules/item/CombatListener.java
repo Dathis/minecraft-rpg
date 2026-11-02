@@ -41,6 +41,13 @@ final class CombatListener implements Listener {
         if (weapon == null || !weapon.isWeapon()) {
             return;
         }
+        if (!module.plugin().levels().meets(attacker, weapon.level)) {
+            // Не дорос до оружия — бьёт как рукой, без крита и вампиризма
+            event.setDamage(1);
+            attacker.sendActionBar(ItemFactory.plain("Нужен уровень " + weapon.level + " для этого оружия")
+                    .color(net.kyori.adventure.text.format.NamedTextColor.RED));
+            return;
+        }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
         double min = Math.min(weapon.damageMin, weapon.damageMax);

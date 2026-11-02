@@ -23,12 +23,14 @@ RpgPlugin (точка входа)
 | `core/input` | `ChatInput` (следующее сообщение игрока идёт в обработчик), `Numbers` (разбор `15`, `15%`, `10-20`) |
 | `core/storage` | `YamlStore`: по файлу на модуль; `ItemCodec`: ItemStack ↔ base64 |
 | `core/combat` | `HealthService`: своё ХП и броня без ванильных пределов |
+| `core/progression` | `LevelService`: уровень и опыт персонажа |
 | `core/platform` | `PlatformService.isBedrock(player)` |
 | `core/config` | `Messages` |
 | `modules/item` | кастомные предметы, оружие, броня, `/create-item` |
 | `modules/mob` | кастомные мобы, зоны спавна, запрет естественного спавна, `/create-mob` |
 | `modules/health` | перехват урона и лечения для своего ХП |
 | `modules/hud` | цифры урона, полоска ХП цели |
+| `modules/level` | уровни персонажа: опыт за мобов, полоска опыта, `/level` |
 | `modules/npc` | NPC, точки в мире, торговля, `/create-npc` |
 | `modules/quest` | квесты, прогресс игроков, `/create-quest`, `/quests` |
 | `modules/region` | защита мира, зоны строительства и добычи, возврат блоков, `/create-region` |
@@ -112,6 +114,23 @@ RpgPlugin (точка входа)
   на следующем тике. `HealthService.dealt(event)` — наш урон для цифр урона.
 - `EntityRegainHealthEvent` отменяется и пересчитывается в долю нашего максимума. Тотем, возрождение, вход игрока
   (снимает сжатие сердец и модификаторы старой версии) обрабатываются отдельно. Игроки синхронизируются раз в 10 тиков.
+
+## Уровни персонажа (`core/progression/LevelService`, `modules/level`)
+
+- `LevelService` (создаёт `RpgPlugin`, доступен как `plugin.levels()`): уровень и опыт внутри уровня в PDC игрока
+  (`rpg_level` int, `rpg_xp` long). `xpToNext(level)` — формула `levels.xp-base × level ^ xp-exponent` или таблица
+  `levels.xp-table`. `giveXp` поднимает уровни в цикле, на `max-level` опыт не копится, затем зовёт
+  `LevelService.Listener` (его ставит модуль). `meets(player, required)` — true, пока модуль выключен.
+  `killMultiplier` — штраф `penalty.xp-percent`, если |уровень моба − уровень игрока| ≥ `penalty.level-difference`.
+- Уровень мобов отдаёт `MobSource` (регистрирует `MobModule`: `CustomMob.level`, опыт `xpFor` — свой или авто
+  `mob-xp-per-level × level × tier-xp-multiplier`). Название моба — `[level] имя`, `MobBrain.track` обновляет
+  его у загруженных мобов, сохранение шаблона — у живых (`refreshNames`).
+- `LevelModule`: `HealthService.Provider` (+`health-per-level` ХП за уровень), показ «+N опыта» / титр нового уровня,
+  `/level`. `LevelListener`: `EntityDeathEvent` HIGHEST — опыт убийце (`getKiller`), ванильные сферы опыта
+  убираются; при `use-xp-bar` полоска опыта = наш уровень (обновляется раз в секунду), `PlayerExpChangeEvent` = 0,
+  уровень не теряется при смерти, `EnchantItemEvent` отменяется (`block-enchanting`). Ник в табе `[N] Ник`.
+- Требования: `CustomItem.level` (оружие — `CombatListener` ставит урон 1, броня — `ArmorListener` не считает статы),
+  `Quest.requiredLevel` (`QuestModule.lockReason`). Награда квеста `rewardXp` идёт в `giveXp`.
 
 ## HUD (`modules/hud`)
 

@@ -80,6 +80,12 @@ final class ItemFactory {
                 lines.add(plain("Регенерация: +" + num(item.regeneration) + " ХП/сек").color(NamedTextColor.GREEN));
             }
         }
+        if (item.level > 1) {
+            if (!lines.isEmpty()) {
+                lines.add(Component.empty());
+            }
+            lines.add(plain("Требуется уровень: " + item.level).color(NamedTextColor.GOLD));
+        }
         return lines;
     }
 

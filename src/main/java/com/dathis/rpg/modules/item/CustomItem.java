@@ -19,6 +19,8 @@ public final class CustomItem {
     String name;
     String nameColor = "white"; // имя цвета (gold, red...) или #RRGGBB
     List<String> lore = new ArrayList<>();
+    /** С какого уровня персонажа работает (оружие бьёт, броня даёт статы). 1 — с любого. */
+    int level = 1;
 
     // Только для оружия
     double damageMin = 5;
@@ -66,6 +68,7 @@ public final class CustomItem {
         c.id = id;
         c.nameColor = nameColor;
         c.lore = new ArrayList<>(lore);
+        c.level = level;
         c.damageMin = damageMin;
         c.damageMax = damageMax;
         c.critChance = critChance;
@@ -82,6 +85,7 @@ public final class CustomItem {
         s.set("name", name);
         s.set("name-color", nameColor);
         s.set("lore", lore);
+        s.set("level", level);
         if (isWeapon()) {
             s.set("damage-min", damageMin);
             s.set("damage-max", damageMax);
@@ -107,6 +111,7 @@ public final class CustomItem {
         item.id = id;
         item.nameColor = s.getString("name-color", "white");
         item.lore = new ArrayList<>(s.getStringList("lore"));
+        item.level = Math.max(1, s.getInt("level", 1));
         item.damageMin = s.getDouble("damage-min", 5);
         item.damageMax = s.getDouble("damage-max", 8);
         item.critChance = s.getDouble("crit-chance", 0);
