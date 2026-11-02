@@ -23,14 +23,17 @@ RpgPlugin (точка входа)
 | `core/input` | `ChatInput` (следующее сообщение игрока идёт в обработчик), `Numbers` (разбор `15`, `15%`, `10-20`) |
 | `core/storage` | `YamlStore`: по файлу на модуль; `ItemCodec`: ItemStack ↔ base64 |
 | `core/combat` | `HealthService`: своё ХП и броня без ванильных пределов |
-| `core/progression` | `LevelService`: уровень и опыт персонажа |
+| `core/progression` | `LevelService`: уровень и опыт персонажа; `ManaService`: мана |
+| `core/hud` | `Sidebar`: строки боковой панели от модулей и выбор игрока «показывать» |
 | `core/platform` | `PlatformService.isBedrock(player)` |
 | `core/config` | `Messages` |
 | `modules/item` | кастомные предметы, оружие, броня, `/create-item` |
 | `modules/mob` | кастомные мобы, зоны спавна, запрет естественного спавна, `/create-mob` |
 | `modules/health` | перехват урона и лечения для своего ХП |
-| `modules/hud` | цифры урона, полоска ХП цели |
+| `modules/hud` | цифры урона, полоска ХП цели, боковая панель |
 | `modules/level` | уровни персонажа: опыт за мобов, полоска опыта, `/level` |
+| `modules/mana` | восстановление маны, `/mana` |
+| `modules/menu` | `/menu`, компас в хотбаре, окно персонажа `/stats`, настройки игрока |
 | `modules/npc` | NPC, точки в мире, торговля, `/create-npc` |
 | `modules/quest` | квесты, прогресс игроков, `/create-quest`, `/quests` |
 | `modules/region` | защита мира, зоны строительства и добычи, возврат блоков, `/create-region` |
@@ -131,6 +134,38 @@ RpgPlugin (точка входа)
   уровень не теряется при смерти, `EnchantItemEvent` отменяется (`block-enchanting`). Ник в табе `[N] Ник`.
 - Требования: `CustomItem.level` (оружие — `CombatListener` ставит урон 1, броня — `ArmorListener` не считает статы),
   `Quest.requiredLevel` (`QuestModule.lockReason`). Награда квеста `rewardXp` идёт в `giveXp`.
+
+## Мана (`core/progression/ManaService`, `modules/mana`)
+
+- `ManaService` (`plugin.mana()`): текущая мана в PDC игрока (`rpg_mana`, double; нет записи — полная).
+  Максимум = `mana.base` + `mana.per-level × (уровень − 1)` + `Provider`; восстановление = `mana.regen` + `Provider`.
+  `spend(player, amount)` — false, если не хватает; пока модуль выключен, всегда true (способности без маны).
+- `ArmorListener` (броня из `/create-item`) — ещё и `ManaService.Provider`: `CustomItem.bonusMana`, `manaRegen`.
+- `ManaModule`: раз в секунду `+regen` (и обрезка, если максимум упал), полная мана при возрождении, `/mana`.
+  `LevelModule` заполняет ману вместе с ХП при новом уровне. `HealthListener.showBar` дописывает ману в action bar.
+
+## Боковая панель (`core/hud/Sidebar`, `modules/hud/SidebarHud`)
+
+- `Sidebar` (`plugin.sidebar()`): модули добавляют `Section` с порядком (`add(order, section)`): квесты — 50,
+  деньги (этап 4) — 20. Флаг игрока «скрыть» в PDC `hud_sidebar_hidden`. `isAvailable()` — панель включена в hud.
+- `SidebarHud`: у каждого игрока свой `Scoreboard`. Строка = запись-невидимый код цвета (`§0§r`...) + префикс team
+  `lineN` с текстом (классический способ, Geyser его передаёт). `NumberFormat.blank()` скрывает числа в Java.
+  Обновление раз в `hud.sidebar.update-ticks`, команды меняются только у изменившихся строк. Если у игрока чужой
+  scoreboard (не общий и не наш), панель его не трогает. Строки: уровень, ХП, мана, секции, `footer`.
+- `QuestModule.sidebarLines`: первый активный квест, первая невыполненная цель, «Можно сдать», «Ещё квестов: N».
+
+## Меню игрока (`modules/menu`)
+
+- `MenuCompass`: компас с PDC `menu_item` в слоте `menu.compass-slot`. `give` (вход, возрождение, раз в 40 тиков)
+  убирает лишние копии и переносит чужой предмет из слота. Отменяет выброс, клики (в т.ч. цифры и F), перетаскивание,
+  рамки и стойки; убирается из дропа при смерти. `PlayerInteractEvent` с компасом (кроме PHYSICAL) и клик по нему
+  в своём инвентаре открывают `PlayerMenu` (на следующем тике, защита от двойного срабатывания 400 мс).
+  Игрок может отключить компас (PDC `menu_compass_hidden`). При выключении модуля компасы забираются.
+- `PlayerMenu`: кнопки по центру среднего ряда; «Квесты» и «Участки» вызывают `/quests` и `/plot` (только если их
+  модули включены), так что меню не зависит от этих модулей. Новые разделы (способности, деньги, дом) добавлять сюда.
+- `StatsMenu` (`/stats [игрок]`): данные из `HealthService`, `LevelService`, `ManaService` и
+  `ItemModule.weapon(ItemStack)` / `armorRegeneration(Player)`.
+- `SettingsMenu`: переключатели боковой панели и компаса.
 
 ## HUD (`modules/hud`)
 

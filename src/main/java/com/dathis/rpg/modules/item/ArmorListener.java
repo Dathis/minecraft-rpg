@@ -1,6 +1,7 @@
 package com.dathis.rpg.modules.item;
 
 import com.dathis.rpg.core.combat.HealthService;
+import com.dathis.rpg.core.progression.ManaService;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,12 +21,12 @@ import java.util.UUID;
  * ванильных пределов), регенерация лечит каждую секунду. Так изменения шаблона в /create-item
  * сразу действуют на уже выданную броню.
  */
-final class ArmorListener implements Listener, Runnable, HealthService.Provider {
+final class ArmorListener implements Listener, Runnable, HealthService.Provider, ManaService.Provider {
 
     private static final long REGEN_PAUSE_MS = 5000;
 
-    private record Stats(double armor, double health, double regen) {
-        static final Stats ZERO = new Stats(0, 0, 0);
+    private record Stats(double armor, double health, double regen, double mana, double manaRegen) {
+        static final Stats ZERO = new Stats(0, 0, 0, 0, 0);
     }
 
     private final ItemModule module;
@@ -53,17 +54,34 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
         if (!(entity instanceof Player player)) {
             return null;
         }
+        Stats stats = stats(player);
+        return new HealthService.Bonus(stats.health(), stats.armor());
+    }
+
+    /** Мана и восстановление маны от надетой брони (для ManaService). */
+    @Override
+    public ManaService.Bonus bonus(Player player) {
+        Stats stats = stats(player);
+        return stats.mana() == 0 && stats.manaRegen() == 0 ? null : new ManaService.Bonus(stats.mana(), stats.manaRegen());
+    }
+
+    /** Регенерация ХП в секунду от надетой брони (для окна персонажа). */
+    double regeneration(Player player) {
+        return stats(player).regen();
+    }
+
+    private Stats stats(Player player) {
         Stats stats = worn.get(player.getUniqueId());
         if (stats == null) {
             // Только что зашёл — посчитаем сразу, не дожидаясь задачи
             stats = collect(player);
             worn.put(player.getUniqueId(), stats);
         }
-        return new HealthService.Bonus(stats.health(), stats.armor());
+        return stats;
     }
 
     private Stats collect(Player player) {
-        double armor = 0, health = 0, regen = 0;
+        double armor = 0, health = 0, regen = 0, mana = 0, manaRegen = 0;
         int locked = 0;
         CustomItem lockedItem = null;
         for (ItemStack piece : player.getInventory().getArmorContents()) {
@@ -78,6 +96,8 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
                 armor += item.armor;
                 health += item.bonusHealth;
                 regen += item.regeneration;
+                mana += item.bonusMana;
+                manaRegen += item.manaRegen;
             }
         }
         Integer before = tooHigh.put(player.getUniqueId(), locked);
@@ -85,7 +105,8 @@ final class ArmorListener implements Listener, Runnable, HealthService.Provider 
             module.plugin().messages().send(player, "<red>«" + net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().escapeTags(lockedItem.name) + "» требует уровень "
                     + lockedItem.level + ": пока она ничего не даёт.</red>");
         }
-        return health == 0 && armor == 0 && regen == 0 ? Stats.ZERO : new Stats(armor, health, regen);
+        return health == 0 && armor == 0 && regen == 0 && mana == 0 && manaRegen == 0
+                ? Stats.ZERO : new Stats(armor, health, regen, mana, manaRegen);
     }
 
     private void regenerate(Player player, Stats stats, long now) {

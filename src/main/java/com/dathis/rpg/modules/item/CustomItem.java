@@ -32,6 +32,8 @@ public final class CustomItem {
     double armor;            // очки брони, как у ванильной (у алмазного нагрудника 8)
     double bonusHealth;      // +ХП к максимуму игрока
     double regeneration;     // ХП в секунду
+    double bonusMana;        // +мана к максимуму
+    double manaRegen;        // маны в секунду
 
     CustomItem(Kind kind, Material material, String name) {
         this.kind = kind;
@@ -76,6 +78,8 @@ public final class CustomItem {
         c.armor = armor;
         c.bonusHealth = bonusHealth;
         c.regeneration = regeneration;
+        c.bonusMana = bonusMana;
+        c.manaRegen = manaRegen;
         return c;
     }
 
@@ -96,6 +100,8 @@ public final class CustomItem {
             s.set("armor", armor);
             s.set("bonus-health", bonusHealth);
             s.set("regeneration", regeneration);
+            s.set("bonus-mana", bonusMana);
+            s.set("mana-regen", manaRegen);
         }
     }
 
@@ -119,6 +125,8 @@ public final class CustomItem {
         item.armor = s.getDouble("armor", 0);
         item.bonusHealth = s.getDouble("bonus-health", 0);
         item.regeneration = s.getDouble("regeneration", 0);
+        item.bonusMana = s.getDouble("bonus-mana", 0);
+        item.manaRegen = s.getDouble("mana-regen", 0);
         return item;
     }
 }

@@ -124,6 +124,7 @@ public final class LevelModule extends AbstractModule {
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (player.isOnline() && !player.isDead()) {
                     plugin.health().fill(player);
+                    plugin.mana().fill(player);
                 }
             });
         }

@@ -79,6 +79,12 @@ final class ItemFactory {
             if (item.regeneration > 0) {
                 lines.add(plain("Регенерация: +" + num(item.regeneration) + " ХП/сек").color(NamedTextColor.GREEN));
             }
+            if (item.bonusMana > 0) {
+                lines.add(plain("Мана: +" + num(item.bonusMana)).color(NamedTextColor.BLUE));
+            }
+            if (item.manaRegen > 0) {
+                lines.add(plain("Восстановление маны: +" + num(item.manaRegen) + "/сек").color(NamedTextColor.BLUE));
+            }
         }
         if (item.level > 1) {
             if (!lines.isEmpty()) {

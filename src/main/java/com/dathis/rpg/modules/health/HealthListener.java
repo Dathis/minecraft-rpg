@@ -301,6 +301,11 @@ final class HealthListener implements Listener, Runnable {
             text = text.append(Component.text("   Броня ", NamedTextColor.GRAY))
                     .append(Component.text(Numbers.format(Math.round(stats.armor())), NamedTextColor.AQUA));
         }
+        if (plugin.mana().isActive()) {
+            text = text.append(Component.text("   Мана ", NamedTextColor.GRAY))
+                    .append(Component.text(Numbers.format(Math.floor(plugin.mana().mana(player))) + " / "
+                            + Numbers.format(Math.floor(plugin.mana().max(player))), NamedTextColor.BLUE));
+        }
         player.sendActionBar(text);
     }
 }
