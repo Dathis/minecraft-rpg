@@ -12,6 +12,7 @@ import com.dathis.rpg.core.progression.LevelService;
 import com.dathis.rpg.core.progression.ManaService;
 import com.dathis.rpg.core.selection.SelectionWand;
 import com.dathis.rpg.core.storage.YamlStore;
+import com.dathis.rpg.modules.ability.AbilityModule;
 import com.dathis.rpg.modules.dialog.DialogModule;
 import com.dathis.rpg.modules.health.HealthModule;
 import com.dathis.rpg.modules.hud.HudModule;
@@ -75,6 +76,7 @@ public final class RpgPlugin extends JavaPlugin {
         modules.register(new HudModule());
         modules.register(new LevelModule());
         modules.register(new ManaModule());
+        modules.register(new AbilityModule());
         modules.register(new MenuModule());
         // Последним: к его включению предметы и мобы уже отдали свои статы (броня, ХП шаблонов)
         modules.register(new HealthModule());

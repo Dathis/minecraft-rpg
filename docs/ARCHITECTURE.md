@@ -34,6 +34,7 @@ RpgPlugin (точка входа)
 | `modules/level` | уровни персонажа: опыт за мобов, полоска опыта, `/level` |
 | `modules/mana` | восстановление маны, `/mana` |
 | `modules/menu` | `/menu`, компас в хотбаре, окно персонажа `/stats`, настройки игрока |
+| `modules/ability` | способности на рунах, `/create-ability`, `/abilities` |
 | `modules/npc` | NPC, точки в мире, торговля, `/create-npc` |
 | `modules/quest` | квесты, прогресс игроков, `/create-quest`, `/quests` |
 | `modules/region` | защита мира, зоны строительства и добычи, возврат блоков, `/create-region` |
@@ -237,11 +238,37 @@ RpgPlugin (точка входа)
 - В `ProtectionListener` участок важнее всего: `restricted` на участке = «не владелец и не помощник» (независимо
   от `protect-world`), `worldProtected` (взрывы, огонь, мобы) всегда true на участке, правила добычи там не действуют.
 
+## Способности (`modules/ability`)
+
+- `Mechanic` — готовые механики (FLIGHT, LEAP, DASH, BLINK, LIFE_DRAIN, HEALTH_SWAP) и их числа (`Param`: какое
+  поле `Stat` из POWER/RANGE/DURATION/PERCENT, подпись, пределы, значение по умолчанию). Новая механика = константа
+  здесь + ветка в `Effects.cast`.
+- `Ability` — шаблон: механика, предмет руны, название, цвет, описание, мана, перезарядка, уровень, числа, `rev`
+  (растёт при сохранении). `AbilityRegistry`: `data/abilities.yml`, id `ability1`.
+- Руна — ItemStack с PDC `ability_id`, `ability_rev` и случайным `ability_rune` (чтобы руны не складывались).
+  `AbilityModule.tickRunes` раз в 10 тиков ставит число в стопке = секунды перезарядки и обновляет вид руны,
+  если `rev` другой (`AbilityRegistry.refresh`, при смене предмета `ItemStack.withType`).
+- `RuneListener`: `PlayerInteractEvent` (ПКМ, и ЛКМ при `cast-on-left-click`) отменяется и зовёт
+  `AbilityModule.cast`; `PlayerInteractEntityEvent` по уязвимому существу — каст с этой целью (неуязвимые NPC —
+  как обычно). Перезаряжающуюся руну (`isLocked`) нельзя кликнуть в инвентаре, перетащить, выбросить;
+  при смерти и выходе стопки рун становятся по одной (иначе стопку можно было бы разделить).
+- `AbilityModule.cast`: защита от двойного срабатывания 300 мс, мир, уровень (`LevelService.meets`), перезарядка
+  (в памяти, по UUID), мана (`ManaService.has`), затем `Effects.cast`; при ошибке (нет цели, некуда) мана и
+  перезарядка не тратятся. Сообщения — в action bar.
+- `Effects`: полёт (`setAllowFlight`/`setFlying`, при окончании возвращает прежнее состояние, медленное падение),
+  прыжок и рывок (`setVelocity`, не больше 3.9), телепорт (`rayTraceBlocks` и поиск места на 2 блока назад по лучу,
+  `RegionModule.isForeignPlot`), высасывание (задача раз в 10 тиков, урон `DamageSource` MAGIC от игрока с
+  `setNoDamageTicks(0)`, лечение = снятое ХП × %), обмен (`HealthService.setHealth` по долям, `MobModule.isBoss`).
+  Урон от падения отменяется на несколько секунд (`EntityDamageEvent` LOWEST). Цель: нажатое существо или
+  `World.rayTrace` по взгляду; игроки — только при `affect-players` и PvP в мире.
+- `AbilityMainMenu` → `AbilityEditorMenu` (числа механики в слотах 30-33), `AbilityListMenu`;
+  `PlayerAbilitiesMenu` (`/abilities`, кнопка в `/menu`) перекладывает руну в хотбар (не в слот компаса).
+
 ## Хранение
 
 `plugins/MinecraftRPG/`:
 - `config.yml` настройки (новые ключи читаются с дефолтами, старые конфиги не ломаются);
-- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`, `data/regions.yml`, `data/plots.yml`.
+- `data/items.yml`, `data/mobs.yml`, `data/zones.yml`, `data/npcs.yml`, `data/quests.yml`, `data/quest-players.yml`, `data/regions.yml`, `data/plots.yml`, `data/abilities.yml`.
 
 ## Совместимость с Bedrock
 

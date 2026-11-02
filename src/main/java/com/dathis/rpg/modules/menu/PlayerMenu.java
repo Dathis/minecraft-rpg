@@ -36,6 +36,11 @@ final class PlayerMenu extends Menu {
                 "<gray>Уровень, опыт, ХП, броня,",
                 "<gray>мана и оружие в руке"),
                 p -> new StatsMenu(module, p, true).open(p)));
+        if (module.plugin().modules().isEnabled("abilities")) {
+            buttons.add(new Button(Icons.of(Material.ENDER_EYE, "<light_purple>Способности",
+                    "<gray>Ваши руны: положить в хотбар,", "<gray>перезарядка, мана"),
+                    p -> p.performCommand("abilities")));
+        }
         if (module.plugin().modules().isEnabled("quests")) {
             buttons.add(new Button(Icons.of(Material.WRITABLE_BOOK, "<yellow>Квесты",
                     "<gray>Журнал взятых и выполненных квестов,", "<gray>задания дня на доске"),
@@ -50,7 +55,7 @@ final class PlayerMenu extends Menu {
                 "<gray>Боковая панель, компас-меню"),
                 p -> new SettingsMenu(module, p).open(p)));
 
-        // По центру второго ряда через одну клетку: 4 кнопки — 10, 12, 14, 16
+        // По центру второго ряда через одну клетку: 4 кнопки — 10, 12, 14, 16; 5 кнопок — 9, 11, 13, 15, 17
         int start = 13 - (buttons.size() - 1);
         for (int i = 0; i < buttons.size(); i++) {
             Button button = buttons.get(i);

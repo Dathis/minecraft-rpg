@@ -160,6 +160,18 @@ public final class RegionModule extends AbstractModule {
         map.open(player);
     }
 
+    /**
+     * Чужой ли это участок для игрока (не владелец и не помощник, без rpg.region.bypass).
+     * Нужен способностям: телепорт не переносит на чужой участок.
+     */
+    public boolean isForeignPlot(Player player, org.bukkit.Location location) {
+        if (plots == null || location.getWorld() == null || player.hasPermission("rpg.region.bypass")) {
+            return false;
+        }
+        Plot plot = plots.plotAt(location.getBlock());
+        return plot != null && !plot.canBuild(player);
+    }
+
     PlotRegistry plots() {
         return plots;
     }

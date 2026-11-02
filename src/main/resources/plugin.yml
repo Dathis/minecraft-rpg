@@ -36,6 +36,16 @@ commands:
     usage: /create-region [list | wand | deed <земля> <small|medium|large> [игрок]]
     aliases: [createregion, regions]
     permission: rpg.admin
+  create-ability:
+    description: Окно создания способностей (полёт, прыжок, рывок, телепорт, высасывание жизни, обмен здоровьем)
+    usage: /create-ability [list | give <id> [игрок]]
+    aliases: [createability, cab]
+    permission: rpg.admin
+  abilities:
+    description: Мои руны способностей
+    usage: /abilities
+    aliases: [skills, spells]
+    permission: rpg.command
   plot:
     description: Мои участки и выбор места по бумаге на участок
     usage: /plot [claim]

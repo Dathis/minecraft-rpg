@@ -123,6 +123,12 @@ public final class MobModule extends AbstractModule {
         return list;
     }
 
+    /** Босс ли это (кастомный моб с рангом BOSS). На боссов не действуют некоторые способности. */
+    public boolean isBoss(Entity entity) {
+        CustomMob mob = registry == null ? null : registry.of(entity);
+        return mob != null && mob.tier == CustomMob.Tier.BOSS;
+    }
+
     /** id шаблона у сущности или null, если это не кастомный моб. */
     public String mobIdOf(Entity entity) {
         CustomMob mob = registry.of(entity);
